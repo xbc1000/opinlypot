@@ -1,202 +1,420 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Coin Collector</title>
 <style>
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  padding: 12px;
-  background: #111827;
-  color: white;
-  font-family: Arial, sans-serif;
-  text-align: center;
-}
-#app {
-  max-width: 1000px;
-  margin: 0 auto;
-  align-items: center;
-  gap: 4px;
-}
-.help { color: #cbd5e1; font-size: 13px; }
-#message { min-height: 22px; color: #facc15; }
-.shop-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
-  gap: 10px;
-  text-align: left;
-}
-.item {
-  background: #374151;
-  border-radius: 8px;
-  padding: 12px;
-  min-width: 0;
-}
-.preview {
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 25px;
-}
-.item button { width: 100%; }
-.danger { background: #b91c1c; }
-details summary {
-  cursor: pointer;
-  font-size: 18px;
-  font-weight: bold;
-}
-hr { border-color: #64748b; margin: 18px 0; }
-  <p class="help">Move with WASD or the arrow keys.</p>
+*{box-sizing:border-box}
+body{margin:0;padding:18px;background:#0b1120;color:white;font-family:Arial;text-align:center}
+h1{color:#60a5fa}
+.panel{max-width:760px;margin:16px auto;padding:15px;background:#172033;border:1px solid #374b69;border-radius:12px}
+.stats{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;font-size:17px}
+select,input,button{padding:9px;margin:5px;border-radius:7px;border:1px solid #526580;background:#263751;color:white}
+button{cursor:pointer}
+button:hover{background:#36547a}
+canvas{display:block;width:100%;max-width:600px;height:auto;margin:15px auto;border:4px solid #60a5fa;border-radius:5px;touch-action:none}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;text-align:left}
+.setting{background:#0e1728;padding:10px;border-radius:8px}
+.setting label{display:block;font-size:13px;color:#cbd5e1}
+.setting input{width:100%;margin:7px 0 0}
+.setting output{color:#facc15}
+.shop{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;text-align:left}
+.item{background:#0e1728;border:1px solid #374b69;padding:12px;border-radius:9px}
+.item button{width:100%}
+.swatch{display:inline-block;width:22px;height:22px;border:2px solid white;border-radius:50%;vertical-align:middle;margin-right:7px}
+.small{font-size:13px;color:#a9b8ce}
+#message{min-height:22px;color:#facc15}
+.hidden{display:none}
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 16px;
+    background: #111827;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+  }
+  h1 { margin: 8px 0; }
+  .stats { margin: 12px; font-size: 18px; }
+  .panel {
+    max-width: 850px;
+    margin: 12px auto;
+    padding: 14px;
+    background: #1f2937;
+    border-radius: 12px;
+  }
+  button, select, input {
+    margin: 4px;
+    padding: 9px;
+    border: 0;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  button {
+    cursor: pointer;
+    background: #3b82f6;
+    color: white;
+  }
+  button:hover { filter: brightness(1.15); }
+  button:disabled { background: #555; cursor: default; }
+  canvas {
+    display: block;
+    width: 100%;
+    max-width: 700px;
+    height: auto;
+    margin: 12px auto;
+    border: 3px solid #64748b;
+    border-radius: 6px;
+    background: #172033;
+  }
+  .shop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+    gap: 10px;
+    text-align: left;
+  }
+  .item {
+    background: #374151;
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .preview {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 25px;
+  }
+  .item button { width: 100%; }
+  .settings { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+  .settings label { display: inline-flex; flex-direction: column; gap: 4px; }
+  #message { min-height: 22px; color: #facc15; }
+  .help { color: #cbd5e1; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>COIN COLLECTOR</h1>
+<p>Collect coins. Avoid enemies. Spend points on cosmetics.</p>
+
+<h1>Coin Collector</h1>
+<div class="stats">
+  Score: <b id="score">0</b> |
+  Points: <b id="points">0</b> |
+  Best: <b id="best">0</b>
+</div>
+
+<div class="panel">
+ <div class="stats">
+  <span>Score: <b id="score">0</b></span>
+  <span>Points: <b id="wallet">0</b></span>
+  <span>Difficulty: <b id="modeLabel">Medium</b></span>
+ </div>
+
+ <p>
+  Difficulty:
+  <select id="difficulty">
+   <option value="easy">Easy</option>
+   <option value="medium" selected>Medium</option>
+   <option value="hard">Hard</option>
+   <option value="custom">Custom</option>
+  </select>
+  <button id="start">Start / Restart</button>
+ </p>
+
+ <div id="customSettings" class="settings hidden">
+  <div class="setting">
+   <label>Number of enemies</label>
+   <input id="enemyCount" type="number" min="1" max="15" value="3">
+  </div>
+  <div class="setting">
+   <label>Player speed</label>
+   <input id="playerSpeed" type="number" min="1" max="8" step=".5" value="3.5">
+  </div>
+  <div class="setting">
+   <label>Enemy starting speed</label>
+   <input id="enemyStart" type="number" min=".5" max="12" step=".5" value="2">
+  </div>
+  <div class="setting">
+   <label>Enemy maximum speed</label>
+   <input id="enemyMax" type="number" min="1" max="20" step=".5" value="8">
+  </div>
+  <div class="setting">
+   <label>Acceleration per coin</label>
+   <input id="acceleration" type="number" min="0" max="1" step=".005" value=".035">
+  <div class="settings">
+    <label>Game mode
+      <select id="mode">
+        <option value="easy">Easy</option>
+        <option value="medium" selected>Medium</option>
+        <option value="hard">Hard</option>
+        <option value="custom">Custom</option>
+      </select>
+    </label>
+    <button id="start">Start / Restart</button>
+    <button id="pause">Pause</button>
+  </div>
+  <div class="setting">
+   <label>Coin value</label>
+   <input id="coinValue" type="number" min="1" max="10" value="1">
+
+  <div id="customSettings" hidden>
+    <h3>Custom Game Settings</h3>
+    <div class="settings">
+      <label>Enemies (1–15)
+        <input id="enemyCount" type="number" min="1" max="15" value="3">
+      </label>
+      <label>Player speed (1–8)
+        <input id="playerSpeed" type="number" min="1" max="8" step=".5" value="3.5">
+      </label>
+      <label>Enemy starting speed (.5–12)
+        <input id="enemyStart" type="number" min=".5" max="12" step=".5" value="2">
+      </label>
+      <label>Enemy max speed (1–20)
+        <input id="enemyMax" type="number" min="1" max="20" step=".5" value="8">
+      </label>
+      <label>Acceleration per coin (0–1)
+        <input id="acceleration" type="number" min="0" max="1" step=".01" value=".035">
+      </label>
+    </div>
+    <p class="help">Coin value is fixed at 1 point per coin in every mode.</p>
+  </div>
+ </div>
+
+ <canvas id="game" width="600" height="400"></canvas>
+ <p id="message">Collect the yellow coins!</p>
+ <p class="small">Move with WASD or arrow keys. Enemy colors show their speed.</p>
+ <p class="small">Blue = slow · Cyan = faster · Yellow = fast · Orange = very fast · Red = maximum</p>
+  <p id="message">Collect coins and avoid the enemies.</p>
+  <p class="help">Move with WASD or the arrow keys. Collect coins to earn points.</p>
 </div>
 
 <canvas id="game" width="700" height="420"></canvas>
 
 <div class="panel">
-  <details>
-    <summary>Settings</summary>
-    <div class="settings" style="margin-top:14px">
-      <label>UI scale: <span id="scaleLabel">100%</span>
-        <input id="uiScale" type="range" min=".75" max="1.25" step=".05" value="1">
-      </label>
-      <label>Sound volume: <span id="volumeLabel">50%</span>
-        <input id="volume" type="range" min="0" max="1" step=".05" value=".5">
-      </label>
-      <label>Sound
-        <select id="soundEnabled">
-          <option value="on">On</option>
-          <option value="off">Off</option>
-        </select>
-      </label>
-    </div>
-
-    <p class="help">Change the interface size and sound volume. Sound effects play when collecting coins and losing.</p>
-    <hr>
-    <h3>Reset Progress</h3>
-    <p class="help">Deletes your saved points, best score, purchases, and equipped items.</p>
-    <button id="resetProgress" class="danger">Reset All Progress</button>
-  </details>
+ <h2>Player Skins</h2>
+ <div id="skinShop" class="shop"></div>
 </div>
-
 <div class="panel">
+ <h2>Backgrounds</h2>
+ <div id="backgroundShop" class="shop"></div>
   <h2>Customization Shop</h2>
-  <p>Unlock shapes, enemy color themes, and backgrounds with points.</p>
+  <p>Use points to unlock shapes, enemy color themes, and backgrounds.</p>
   <div id="shop"></div>
 </div>
 
-</div>
-
 <script>
-"use strict";
-    const data = JSON.parse(localStorage.getItem("coinCollectorSave") || "{}");
-    const s = { ...defaultSave(), ...data };
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const $=id=>document.getElementById(id);
 
-    s.points = Math.max(0, Number(s.points) || 0);
-    s.best = Math.max(0, Number(s.best) || 0);
-    s.uiScale = Math.min(1.25, Math.max(.75, Number(s.uiScale) || 1));
-    s.volume = Math.min(1, Math.max(0, Number(s.volume) || 0));
+const skins=[
+ {name:"Blue",color:"#3b82f6",price:0},
+ {name:"Green",color:"#22c55e",price:10},
+ {name:"Purple",color:"#a855f7",price:25},
+ {name:"Red",color:"#ef4444",price:40},
+ {name:"Pink",color:"#ec4899",price:60},
+ {name:"Gold",color:"#facc15",price:100},
+ {name:"White",color:"#f8fafc",price:150},
+ {name:"Cyan",color:"#22d3ee",price:200}
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-    if (!Array.isArray(s.ownedShapes)) s.ownedShapes = ["square"];
-    if (!Array.isArray(s.ownedThemes)) s.ownedThemes = ["classic"];
-    if (!Array.isArray(s.ownedBackgrounds)) s.ownedBackgrounds = ["night"];
+const $ = id => document.getElementById(id);
 
-    if (!shapes.some(x => x.id === s.shape) || !s.ownedShapes.includes(s.shape))
-      s.shape = "square";
-    if (!themes.some(x => x.id === s.theme) || !s.ownedThemes.includes(s.theme))
-      s.theme = "classic";
-    if (!backgrounds.some(x => x.id === s.background) || !s.ownedBackgrounds.includes(s.background))
-      s.background = "night";
+const modes = {
+  easy:   { count: 1, player: 5,   start: 1, max: 3,  acc: .01 },
+  medium: { count: 3, player: 3.5, start: 2, max: 8,  acc: .035 },
+  hard:   { count: 6, player: 2.5, start: 3, max: 12, acc: .06 }
+};
 
-  // Scale the page content without scaling the canvas's drawing coordinates.
-  $("app").style.zoom = save.uiScale;
-  $("uiScale").value = save.uiScale;
-  $("scaleLabel").textContent = Math.round(save.uiScale * 100) + "%";
-  $("volume").value = save.volume;
-  $("volumeLabel").textContent = Math.round(save.volume * 100) + "%";
-  $("soundEnabled").value = save.soundEnabled ? "on" : "off";
-}
+const shapes = [
+  { id: "square", name: "Square", price: 0, symbol: "■" },
+  { id: "circle", name: "Circle", price: 30, symbol: "●" },
+  { id: "triangle", name: "Triangle", price: 60, symbol: "▲" },
+  { id: "diamond", name: "Diamond", price: 90, symbol: "◆" },
+  { id: "star", name: "Star", price: 150, symbol: "★" },
+  { id: "hexagon", name: "Hexagon", price: 200, symbol: "⬢" }
+];
 
-$("uiScale").addEventListener("input", () => {
-  save.uiScale = Number($("uiScale").value);
-  applySettings();
-  saveData();
-});
+const backgrounds=[
+ {name:"Classic",color:"#111c30",price:0},
+ {name:"Forest",color:"#123c2a",price:20},
+ {name:"Ocean",color:"#102e4a",price:30},
+ {name:"Purple Night",color:"#30194b",price:50},
+ {name:"Red Planet",color:"#51251f",price:75},
+ {name:"Dark",color:"#080808",price:100}
+const themes = [
+  { id: "classic", name: "Classic Blue → Red", price: 0,
+    colors: ["#2563eb", "#06b6d4", "#facc15", "#f97316", "#ef4444"] },
+  { id: "monochrome", name: "Black → White", price: 100,
+    colors: ["#000000", "#333333", "#777777", "#bbbbbb", "#ffffff"] },
+  { id: "ocean", name: "Blue → Purple", price: 100,
+    colors: ["#1d4ed8", "#0ea5e9", "#6366f1", "#a855f7", "#e879f9"] },
+  { id: "nature", name: "Green → Yellow", price: 100,
+    colors: ["#166534", "#16a34a", "#84cc16", "#eab308", "#fef08a"] },
+  { id: "fire", name: "Yellow → Red", price: 125,
+    colors: ["#fef08a", "#facc15", "#fb923c", "#ef4444", "#991b1b"] },
+  { id: "neon", name: "Neon Rainbow", price: 175,
+    colors: ["#ff00ff", "#00ffff", "#39ff14", "#ffff00", "#ff3131"] }
+];
 
-$("volume").addEventListener("input", () => {
-  save.volume = Number($("volume").value);
-  applySettings();
-  saveData();
-});
+const modes={
+ easy:{count:1,player:5,start:1,max:3,acc:.01,value:1},
+ medium:{count:3,player:3.5,start:2,max:8,acc:.035,value:1},
+ hard:{count:6,player:2.5,start:3,max:12,acc:.06,value:1}
+};
+const backgrounds = [
+  { id: "night", name: "Night", price: 0, color: "#172033", grid: "#273449" },
+  { id: "forest", name: "Forest", price: 75, color: "#10251c", grid: "#244b35" },
+  { id: "purple", name: "Purple", price: 75, color: "#211337", grid: "#43265e" },
+  { id: "black", name: "Black", price: 100, color: "#050505", grid: "#252525" },
+  { id: "sand", name: "Sand", price: 125, color: "#4a3825", grid: "#6b5538" },
+  { id: "ice", name: "Ice", price: 150, color: "#102d3b", grid: "#28556b" }
+];
 
-$("soundEnabled").addEventListener("change", () => {
-  save.soundEnabled = $("soundEnabled").value === "on";
-  saveData();
-  if (save.soundEnabled) playSound(440, .08);
-});
-
-function playSound(frequency, duration, type="sine") {
-  if (!save.soundEnabled || save.volume <= 0) return;
-
+function loadSave(){
+ try{return JSON.parse(localStorage.getItem("coinCollectorSave"))||{}}
+ catch{return {}}
+function loadSave() {
   try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
+    const data = JSON.parse(localStorage.getItem("coinCollectorSave") || "{}");
+    return {
+      points: Number.isFinite(data.points) ? Math.max(0, data.points) : 0,
+      best: Number.isFinite(data.best) ? Math.max(0, data.best) : 0,
+      ownedShapes: Array.isArray(data.ownedShapes) ? data.ownedShapes : ["square"],
+      ownedThemes: Array.isArray(data.ownedThemes) ? data.ownedThemes : ["classic"],
+      ownedBackgrounds: Array.isArray(data.ownedBackgrounds) ? data.ownedBackgrounds : ["night"],
+      shape: data.shape || "square",
+      theme: data.theme || "classic",
+      background: data.background || "night"
+    };
+  } catch {
+    return {
+      points: 0, best: 0,
+      ownedShapes: ["square"], ownedThemes: ["classic"],
+      ownedBackgrounds: ["night"],
+      shape: "square", theme: "classic", background: "night"
+    };
+  }
+}
+const saved=loadSave();
+let wallet=Number.isFinite(saved.wallet)?Math.max(0,saved.wallet):0;
+let ownedSkins=Array.isArray(saved.ownedSkins)?saved.ownedSkins.filter(n=>skins.some(s=>s.name===n)):["Blue"];
+let ownedBackgrounds=Array.isArray(saved.ownedBackgrounds)?saved.ownedBackgrounds.filter(n=>backgrounds.some(b=>b.name===n)):["Classic"];
+if(!ownedSkins.includes("Blue"))ownedSkins.push("Blue");
+if(!ownedBackgrounds.includes("Classic"))ownedBackgrounds.push("Classic");
+let selectedSkin=ownedSkins.includes(saved.selectedSkin)?saved.selectedSkin:"Blue";
+let selectedBackground=ownedBackgrounds.includes(saved.selectedBackground)?saved.selectedBackground:"Classic";
 
-    if (!audioContext) audioContext = new AudioCtx();
-    if (audioContext.state === "suspended") audioContext.resume();
+let player,coin,enemies=[],score=0,running=false,version=0,keys={};
+let config=modes.medium;
 
-    const oscillator = audioContext.createOscillator();
-    const gain = audioContext.createGain();
+function save(){
+ localStorage.setItem("coinCollectorSave",JSON.stringify({
+  wallet,ownedSkins,ownedBackgrounds,selectedSkin,selectedBackground
+ }));
+ $("wallet").textContent=wallet;
 
-    oscillator.type = type;
-    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-    gain.gain.setValueAtTime(save.volume * .16, audioContext.currentTime);
-    gain.gain.exponentialRampToValueAtTime(.001, audioContext.currentTime + duration);
+let save = loadSave();
+let score = 0;
+let running = false;
+let paused = false;
+let gameOver = false;
+let player, coin, enemies, settings;
+let keys = {};
+let animationId = null;
 
-    oscillator.connect(gain);
-    gain.connect(audioContext.destination);
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + duration);
-  } catch {}
+function saveData() {
+  localStorage.setItem("coinCollectorSave", JSON.stringify(save));
 }
 
-function randomPosition(size=18) {
+function currentSkin(){return skins.find(s=>s.name===selectedSkin)||skins[0]}
+function currentBg(){return backgrounds.find(b=>b.name===selectedBackground)||backgrounds[0]}
+function updateStats() {
+  $("score").textContent = score;
+  $("points").textContent = save.points;
+  $("best").textContent = save.best;
+}
+
+function randomPos(){
+ return {x:25+Math.random()*(canvas.width-50),y:25+Math.random()*(canvas.height-50)};
+function randomPosition(size = 18) {
   return {
-    x:size + Math.random() * (canvas.width - size*2),
-    y:size + Math.random() * (canvas.height - size*2)
+    x: size + Math.random() * (canvas.width - size * 2),
+    y: size + Math.random() * (canvas.height - size * 2)
   };
 }
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+
+function getConfig(){
+ const difficulty=$("difficulty").value;
+ if(difficulty!=="custom")return {...modes[difficulty]};
+ return {
+  count:Math.max(1,Math.min(15,Number($("enemyCount").value)||1)),
+  player:Math.max(1,Math.min(8,Number($("playerSpeed").value)||3.5)),
+  start:Math.max(.5,Math.min(12,Number($("enemyStart").value)||2)),
+  max:Math.max(1,Math.min(20,Number($("enemyMax").value)||8)),
+  acc:Math.max(0,Math.min(1,Number($("acceleration").value)||0)),
+  value:Math.max(1,Math.min(10,Math.floor(Number($("coinValue").value)||1)))
+ };
 
 function placeCoin() {
-  coin = randomPosition(10);
+  coin = randomPosition(9);
   let attempts = 0;
-
-  while (player &&
-    Math.hypot(coin.x-player.x, coin.y-player.y) < 60 &&
-    attempts++ < 30) {
-    coin = randomPosition(10);
+  while (player && Math.hypot(coin.x - player.x, coin.y - player.y) < 60 && attempts++ < 30) {
+    coin = randomPosition(9);
   }
 }
 
+function startGame(){
+ version++;
+ const v=version;
+ config=getConfig();
+ config.max=Math.max(config.start,config.max);
+ player={x:45,y:45,size:13};
+ coin=randomPos();
+ enemies=[];
+ score=0;
+ keys={};
+ running=true;
+ $("score").textContent=score;
+ $("modeLabel").textContent=$("difficulty").selectedOptions[0].text;
+ $("message").textContent="Collect coins and avoid the enemies!";
+ for(let i=0;i<config.count;i++){
+  let p=randomPos();
+  while(dist(p,player)<100)p=randomPos();
+  const angle=Math.random()*Math.PI*2;
+  const speed=config.start*(.8+Math.random()*.4);
+  enemies.push({
+   x:p.x,y:p.y,
+   dx:Math.cos(angle)*speed,
+   dy:Math.sin(angle)*speed,
+   base:speed
+  });
+ }
+ draw(v);
 function readCustomSettings() {
   const number = (id, min, max, fallback) =>
     Math.min(max, Math.max(min, Number($(id).value) || fallback));
 
   const start = number("enemyStart", .5, 12, 2);
-
   return {
-    count:Math.round(number("enemyCount", 1, 15, 3)),
-    player:number("playerSpeed", 1, 8, 3.5),
+    count: Math.round(number("enemyCount", 1, 15, 3)),
+    player: number("playerSpeed", 1, 8, 3.5),
     start,
-    max:Math.max(start, number("enemyMax", 1, 20, 8)),
-    acc:number("acceleration", 0, 1, .035)
+    max: Math.max(start, number("enemyMax", 1, 20, 8)),
+    acc: number("acceleration", 0, 1, .035)
   };
 }
 
+$("start").addEventListener("click",startGame);
+$("difficulty").addEventListener("change",()=>{
+ $("customSettings").classList.toggle("hidden",$("difficulty").value!=="custom");
+ if(running)startGame();
+});
 function startGame() {
   if (animationId !== null) cancelAnimationFrame(animationId);
-
   score = 0;
   gameOver = false;
   paused = false;
@@ -206,95 +424,218 @@ function startGame() {
     ? readCustomSettings()
     : modes[$("mode").value];
 
-  player = {
-    x:canvas.width/2,
-    y:canvas.height/2,
-    size:14
-  };
-
+  player = { x: canvas.width / 2, y: canvas.height / 2, size: 14 };
   enemies = [];
 
-  for (let i=0; i<settings.count; i++) {
-    const p = randomPosition(30);
-    const angle = Math.random() * Math.PI * 2;
-    const speed = settings.start + Math.random() * .5;
-
+  for (let i = 0; i < settings.count; i++) {
+    const p = randomPosition(25);
     enemies.push({
-      x:p.x,
-      y:p.y,
-      size:13,
-      vx:Math.cos(angle) * speed,
-      vy:Math.sin(angle) * speed,
-      baseSpeed:speed
+      x: p.x, y: p.y,
+      size: 13,
+      baseSpeed: settings.start + Math.random() * .5,
+      angle: Math.random() * Math.PI * 2
     });
   }
 
+document.addEventListener("keydown",e=>{
+ const k=e.key.toLowerCase();
+ if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k))e.preventDefault();
+ keys[k]=true;
+});
+document.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
+window.addEventListener("blur",()=>keys={});
+
+function speedColor(speed,max){
+ const ratio=Math.max(0,Math.min(1,speed/max));
+ const stops=[
+  [0,[59,130,246]],
+  [.25,[34,211,238]],
+  [.5,[250,204,21]],
+  [.75,[249,115,22]],
+  [1,[239,68,68]]
+ ];
+ let i=0;
+ while(i<stops.length-2&&ratio>stops[i+1][0])i++;
+ const a=stops[i],b=stops[i+1];
+ const t=(ratio-a[0])/(b[0]-a[0]);
+ const rgb=a[1].map((c,j)=>Math.round(c+(b[1][j]-c)*t));
+ return `rgb(${rgb.join(",")})`;
   placeCoin();
-  keys = {};
   $("message").textContent = "Collect coins and avoid the enemies.";
   $("pause").textContent = "Pause";
   updateStats();
+  animationId = requestAnimationFrame(loop);
+}
 
-  draw();
-      const x = player.x + Math.cos(a)*r;
-      const y = player.y + Math.sin(a)*r;
-      if (i===0) ctx.moveTo(x,y);
-      else ctx.lineTo(x,y);
+function enemySpeed(enemy) {
+  return Math.min(settings.max, enemy.baseSpeed + score * settings.acc);
+}
+
+function currentTheme() {
+  return themes.find(t => t.id === save.theme) || themes[0];
+}
+
+function enemyColor(enemy) {
+  const theme = currentTheme();
+  const progress = settings.max <= settings.start
+    ? (enemySpeed(enemy) >= settings.max ? 1 : 0)
+    : Math.min(1, Math.max(0,
+        (enemySpeed(enemy) - settings.start) / (settings.max - settings.start)));
+
+  const scaled = progress * (theme.colors.length - 1);
+  const index = Math.min(theme.colors.length - 2, Math.floor(scaled));
+  return theme.colors[index + (scaled - index >= .5 ? 1 : 0)];
+}
+
+function drawPlayer() {
+  const shape = save.shape;
+  const s = player.size;
+  ctx.fillStyle = "#3b82f6";
+  ctx.strokeStyle = "white";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+
+  if (shape === "circle") {
+    ctx.arc(player.x, player.y, s, 0, Math.PI * 2);
+  } else if (shape === "triangle") {
+    ctx.moveTo(player.x, player.y - s);
+    ctx.lineTo(player.x + s, player.y + s);
+    ctx.lineTo(player.x - s, player.y + s);
+    ctx.closePath();
+  } else if (shape === "diamond") {
+    ctx.moveTo(player.x, player.y - s);
+    ctx.lineTo(player.x + s, player.y);
+    ctx.lineTo(player.x, player.y + s);
+    ctx.lineTo(player.x - s, player.y);
+    ctx.closePath();
+  } else if (shape === "star") {
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 === 0 ? s : s * .45;
+      const a = -Math.PI / 2 + i * Math.PI / 5;
+      const x = player.x + Math.cos(a) * r;
+      const y = player.y + Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
     }
     ctx.closePath();
-  } else if (save.shape === "hexagon") {
-    for (let i=0; i<6; i++) {
-      const a = i*Math.PI/3;
-      const x = player.x + Math.cos(a)*s;
-      const y = player.y + Math.sin(a)*s;
-      if (i===0) ctx.moveTo(x,y);
-      else ctx.lineTo(x,y);
+  } else if (shape === "hexagon") {
+    for (let i = 0; i < 6; i++) {
+      const a = i * Math.PI / 3;
+      const x = player.x + Math.cos(a) * s;
+      const y = player.y + Math.sin(a) * s;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
     }
     ctx.closePath();
   } else {
-    ctx.rect(player.x-s, player.y-s, s*2, s*2);
+    ctx.rect(player.x - s, player.y - s, s * 2, s * 2);
   }
 
   ctx.fill();
   ctx.stroke();
 }
 
+function draw(v){
+ if(!running||v!==version)return;
+ ctx.clearRect(0,0,600,400);
+ ctx.fillStyle=currentBg().color;
+ ctx.fillRect(0,0,600,400);
+
+ // Arena grid and bright boundaries
+ ctx.strokeStyle="#ffffff20";
+ ctx.lineWidth=1;
+ for(let x=0;x<=600;x+=25){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,400);ctx.stroke()}
+ for(let y=0;y<=400;y+=25){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(600,y);ctx.stroke()}
+ ctx.strokeStyle="#93c5fd";
+ ctx.lineWidth=4;
+ ctx.strokeRect(2,2,596,396);
+
+ let mx=0,my=0;
+ if(keys.arrowup||keys.w)my--;
+ if(keys.arrowdown||keys.s)my++;
+ if(keys.arrowleft||keys.a)mx--;
+ if(keys.arrowright||keys.d)mx++;
+ if(mx&&my){mx*=Math.SQRT1_2;my*=Math.SQRT1_2}
+ player.x=Math.max(16,Math.min(584,player.x+mx*config.player));
+ player.y=Math.max(16,Math.min(384,player.y+my*config.player));
+
+ // Coin
+ ctx.fillStyle="#facc15";
+ ctx.shadowColor="#facc15";
+ ctx.shadowBlur=14;
+ ctx.beginPath();ctx.arc(coin.x,coin.y,10,0,Math.PI*2);ctx.fill();
+ ctx.shadowBlur=0;
+
+ if(dist(player,coin)<23){
+  score++;
+  wallet+=config.value;
+  $("score").textContent=score;
+  save();
+  coin=randomPos();
+  $("message").textContent="+"+config.value+" points! Enemies are accelerating.";
+ }
+
+ // Player
+ ctx.fillStyle=currentSkin().color;
+ ctx.fillRect(player.x-12,player.y-12,24,24);
+ ctx.strokeStyle="white";ctx.lineWidth=2;
+ ctx.strokeRect(player.x-12,player.y-12,24,24);
+
+ // Enemy speed increases with score; color tracks actual speed.
+ for(const e of enemies){
+  const oldSpeed=Math.hypot(e.dx,e.dy);
+  const target=Math.min(config.max,e.base+score*config.acc);
+  const newSpeed=Math.min(config.max,Math.max(.1,target));
+  if(oldSpeed>0){
+   e.dx=e.dx/oldSpeed*newSpeed;
+   e.dy=e.dy/oldSpeed*newSpeed;
 function draw() {
   const bg = backgrounds.find(b => b.id === save.background) || backgrounds[0];
-
   ctx.fillStyle = bg.color;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   ctx.strokeStyle = bg.grid;
   ctx.lineWidth = 1;
+  for (let x = 0; x < canvas.width; x += 35) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  e.x+=e.dx;e.y+=e.dy;
 
-  for (let x=0; x<canvas.width; x+=35) {
-    ctx.beginPath();
-    ctx.moveTo(x,0);
-    ctx.lineTo(x,canvas.height);
-    ctx.stroke();
+  if(e.x<14||e.x>586){e.dx*=-1;e.x=Math.max(14,Math.min(586,e.x))}
+  if(e.y<14||e.y>386){e.dy*=-1;e.y=Math.max(14,Math.min(386,e.y))}
+
+  const speed=Math.hypot(e.dx,e.dy);
+  const color=speedColor(speed,config.max);
+  ctx.fillStyle=color;
+  ctx.shadowColor=color;
+  ctx.shadowBlur=12;
+  ctx.beginPath();ctx.arc(e.x,e.y,12,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur=0;
+
+  // Speed indicator ring
+  ctx.strokeStyle="#ffffffaa";
+  ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(e.x,e.y,15,0,Math.PI*2);ctx.stroke();
+
+  if(dist(player,e)<25){
+   running=false;
+   $("message").textContent="Game over! Score: "+score+". Press Start / Restart to play again.";
+   return;
+  for (let y = 0; y < canvas.height; y += 35) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
   }
 
-  for (let y=0; y<canvas.height; y+=35) {
-    ctx.beginPath();
-    ctx.moveTo(0,y);
-    ctx.lineTo(canvas.width,y);
-    ctx.stroke();
-  }
-
-  if (coin) {
-    ctx.fillStyle = "#facc15";
-    ctx.beginPath();
-    ctx.arc(coin.x,coin.y,8,0,Math.PI*2);
-    ctx.fill();
-    ctx.strokeStyle = "#fff0a3";
-    ctx.stroke();
-  }
+  ctx.fillStyle = "#facc15";
+  ctx.beginPath();
+  ctx.arc(coin.x, coin.y, 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#fff0a3";
+  ctx.stroke();
 
   enemies.forEach(enemy => {
     ctx.fillStyle = enemyColor(enemy);
     ctx.beginPath();
-    ctx.arc(enemy.x,enemy.y,enemy.size,0,Math.PI*2);
+    ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = "#ffffff99";
     ctx.stroke();
@@ -304,47 +645,56 @@ function draw() {
 
   if (paused || gameOver) {
     ctx.fillStyle = "#000000aa";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "white";
     ctx.textAlign = "center";
     ctx.font = "bold 32px Arial";
-    ctx.fillText(paused ? "PAUSED" : "GAME OVER",
-      canvas.width/2,canvas.height/2);
+    ctx.fillText(paused ? "PAUSED" : "GAME OVER", canvas.width / 2, canvas.height / 2);
     ctx.font = "16px Arial";
-    ctx.fillText("Press Start / Restart to play again",
-      canvas.width/2,canvas.height/2+32);
+    ctx.fillText("Press Start / Restart to play again", canvas.width / 2, canvas.height / 2 + 32);
   }
+ }
+ requestAnimationFrame(()=>draw(v));
 }
 
-/* Enemies move independently and bounce off the arena walls.
-   They accelerate as the score increases but do not chase the player. */
-function moveEnemy(enemy) {
-  const speed = enemySpeed(enemy);
-  const oldSpeed = Math.hypot(enemy.vx, enemy.vy) || 1;
+function renderShop(items,owned,selected,containerId,type){
+ const container=$(containerId);
+ container.innerHTML="";
+ for(const item of items){
+  const card=document.createElement("div");
+  card.className="item";
+  const heading=document.createElement("div");
+  const swatch=document.createElement("span");
+  swatch.className="swatch";
+  swatch.style.background=item.color;
+  heading.append(swatch,document.createTextNode(item.name));
+  card.appendChild(heading);
 
-  enemy.vx = enemy.vx / oldSpeed * speed;
-  enemy.vy = enemy.vy / oldSpeed * speed;
+  const price=document.createElement("p");
+  price.className="small";
+  price.textContent=item.price===0?"Free":item.price+" points";
+  card.appendChild(price);
 
-  enemy.x += enemy.vx;
-  enemy.y += enemy.vy;
+  const button=document.createElement("button");
+  const isOwned=owned.includes(item.name);
+  const isSelected=selected===item.name;
+  button.textContent=isSelected?"Equipped":isOwned?"Equip":"Buy";
+  button.disabled=isSelected||(!isOwned&&wallet<item.price);
 
-  if (enemy.x-enemy.size <= 0) {
-    enemy.x = enemy.size;
-    enemy.vx = Math.abs(enemy.vx);
-  } else if (enemy.x+enemy.size >= canvas.width) {
-    enemy.x = canvas.width-enemy.size;
-    enemy.vx = -Math.abs(enemy.vx);
-  }
-
-  if (enemy.y-enemy.size <= 0) {
-    enemy.y = enemy.size;
-    enemy.vy = Math.abs(enemy.vy);
-  } else if (enemy.y+enemy.size >= canvas.height) {
-    enemy.y = canvas.height-enemy.size;
-    enemy.vy = -Math.abs(enemy.vy);
-  }
-}
-
+  button.onclick=()=>{
+   if(!owned.includes(item.name)){
+    if(wallet<item.price)return;
+    wallet-=item.price;
+    owned.push(item.name);
+   }
+   if(type==="skin")selectedSkin=item.name;
+   else selectedBackground=item.name;
+   save();
+   renderAllShops();
+  };
+  card.appendChild(button);
+  container.appendChild(card);
+ }
 function endGame() {
   running = false;
   gameOver = true;
@@ -352,13 +702,11 @@ function endGame() {
   saveData();
   updateStats();
   $("message").textContent = "Game over. Your score was " + score + ".";
-  playSound(150, .35, "sawtooth");
   draw();
 }
 
 function loop() {
   if (!running) return;
-
   if (paused) {
     draw();
     animationId = requestAnimationFrame(loop);
@@ -366,7 +714,6 @@ function loop() {
   }
 
   let dx = 0, dy = 0;
-
   if (keys.ArrowLeft || keys.a) dx--;
   if (keys.ArrowRight || keys.d) dx++;
   if (keys.ArrowUp || keys.w) dy--;
@@ -377,34 +724,26 @@ function loop() {
     dy *= Math.SQRT1_2;
   }
 
-  player.x = Math.max(player.size,
-    Math.min(canvas.width-player.size, player.x+dx*settings.player));
+  player.x = Math.max(player.size, Math.min(canvas.width - player.size, player.x + dx * settings.player));
+  player.y = Math.max(player.size, Math.min(canvas.height - player.size, player.y + dy * settings.player));
 
-  player.y = Math.max(player.size,
-    Math.min(canvas.height-player.size, player.y+dy*settings.player));
-
-  if (Math.hypot(player.x-coin.x,player.y-coin.y) < player.size+8) {
+  if (Math.hypot(player.x - coin.x, player.y - coin.y) < player.size + 8) {
     score++;
     save.points++;
     placeCoin();
-
-    save.best = Math.max(save.best,score);
+    save.best = Math.max(save.best, score);
     saveData();
     updateStats();
     renderShop();
-
-    const now = performance.now();
-    if (now-lastSoundTime > 65) {
-      playSound(600+(score%5)*100, .09);
-      lastSoundTime = now;
-    }
   }
 
   for (const enemy of enemies) {
-    moveEnemy(enemy);
+    const angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+    const speed = enemySpeed(enemy);
+    enemy.x += Math.cos(angle) * speed;
+    enemy.y += Math.sin(angle) * speed;
 
-    if (Math.hypot(player.x-enemy.x,player.y-enemy.y)
-      < player.size+enemy.size) {
+    if (Math.hypot(player.x - enemy.x, player.y - enemy.y) < player.size + enemy.size) {
       endGame();
       return;
     }
@@ -414,36 +753,32 @@ function loop() {
   animationId = requestAnimationFrame(loop);
 }
 
+function renderAllShops(){
+ renderShop(skins,ownedSkins,selectedSkin,"skinShop","skin");
+ renderShop(backgrounds,ownedBackgrounds,selectedBackground,"backgroundShop","background");
 $("start").addEventListener("click", startGame);
-
 $("mode").addEventListener("change", () => {
   $("customSettings").hidden = $("mode").value !== "custom";
 });
-
 $("pause").addEventListener("click", () => {
   if (!running || gameOver) return;
-
   paused = !paused;
   $("pause").textContent = paused ? "Resume" : "Pause";
 });
 
-document.addEventListener("keydown", event => {
-  const key = event.key.length===1 ? event.key.toLowerCase() : event.key;
-
-  if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(event.key))
-    event.preventDefault();
-
+document.addEventListener("keydown", e => {
+  const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.key)) e.preventDefault();
   keys[key] = true;
 });
-
-document.addEventListener("keyup", event => {
-  const key = event.key.length===1 ? event.key.toLowerCase() : event.key;
+document.addEventListener("keyup", e => {
+  const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   keys[key] = false;
 });
 
 function renderShop() {
   const shop = $("shop");
-  shop.replaceChildren();
+  shop.innerHTML = "";
 
   function section(title, items, ownedKey, equippedKey, type) {
     const heading = document.createElement("h3");
@@ -456,7 +791,6 @@ function renderShop() {
     items.forEach(item => {
       const owned = save[ownedKey].includes(item.id);
       const equipped = save[equippedKey] === item.id;
-
       const card = document.createElement("div");
       card.className = "item";
 
@@ -472,26 +806,21 @@ function renderShop() {
         preview.style.color = "#60a5fa";
       } else if (type === "theme") {
         preview.style.gap = "3px";
-
         item.colors.forEach(color => {
           const dot = document.createElement("span");
-          dot.style.cssText =
-            "display:inline-block;width:19px;height:19px;border-radius:50%;background:"+
-            color+";border:1px solid white";
+          dot.style.cssText = `display:inline-block;width:19px;height:19px;border-radius:50%;background:${color};border:1px solid #fff`;
           preview.appendChild(dot);
         });
       } else {
         preview.style.background = item.color;
-        preview.style.border = "2px solid " + item.grid;
+        preview.style.border = `2px solid ${item.grid}`;
         preview.style.margin = "8px 0";
       }
 
       card.appendChild(preview);
 
       const description = document.createElement("p");
-      description.textContent = equipped
-        ? "Equipped"
-        : owned ? "Unlocked" : item.price + " points";
+      description.textContent = equipped ? "Equipped" : owned ? "Unlocked" : item.price + " points";
       card.appendChild(description);
 
       const button = document.createElement("button");
@@ -501,11 +830,9 @@ function renderShop() {
       button.addEventListener("click", () => {
         if (!owned) {
           if (save.points < item.price) {
-            $("message").textContent =
-              "You need " + (item.price-save.points) + " more points.";
+            $("message").textContent = "You need " + (item.price - save.points) + " more points.";
             return;
           }
-
           save.points -= item.price;
           save[ownedKey].push(item.id);
         }
@@ -515,11 +842,7 @@ function renderShop() {
         updateStats();
         renderShop();
         draw();
-
-        $("message").textContent = item.name +
-          (owned ? " equipped." : " unlocked and equipped.");
-
-        playSound(700,.1);
+        $("message").textContent = item.name + (owned ? " equipped." : " unlocked and equipped.");
       });
 
       card.appendChild(button);
@@ -529,36 +852,17 @@ function renderShop() {
     shop.appendChild(grid);
   }
 
-  section("Player Shapes",shapes,"ownedShapes","shape","shape");
-  section("Enemy Color Themes",themes,"ownedThemes","theme","theme");
-  section("Backgrounds",backgrounds,"ownedBackgrounds","background","background");
+  section("Player Shapes", shapes, "ownedShapes", "shape", "shape");
+  section("Enemy Color Themes", themes, "ownedThemes", "theme", "theme");
+  section("Backgrounds", backgrounds, "ownedBackgrounds", "background", "background");
 }
 
-$("resetProgress").addEventListener("click", () => {
-  if (!confirm(
-    "Reset ALL progress? Your points, best score, purchases, and customizations will be deleted. This cannot be undone."
-  )) return;
-
-  save = defaultSave();
-  saveData();
-
-  applySettings();
-  updateStats();
-  renderShop();
-
-  $("mode").value = "medium";
-  $("customSettings").hidden = true;
-
-  startGame();
-  $("message").textContent = "Progress reset. A new game has started.";
-});
-
-/* INITIALIZE EVERYTHING AND START PLAYING AUTOMATICALLY */
-applySettings();
+save();
+renderAllShops();
+startGame();
 updateStats();
 renderShop();
-startGame();
-
+draw();
 </script>
 </body>
 </html>
