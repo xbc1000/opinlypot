@@ -15,52 +15,10 @@ body {
   text-align: center;
 }
 #app {
-  zoom: 1;
   max-width: 1000px;
-  margin: auto;
-}
-h1 { margin: 8px 0; }
-.stats { margin: 12px; font-size: 18px; }
-.panel {
-  max-width: 850px;
-  margin: 12px auto;
-  padding: 14px;
-  background: #1f2937;
-  border-radius: 12px;
-}
-button, select, input {
-  margin: 4px;
-  padding: 9px;
-  border: 0;
-  border-radius: 6px;
-  font-size: 14px;
-}
-button { background: #3b82f6; color: white; cursor: pointer; }
-button:hover { filter: brightness(1.15); }
-button:disabled { background: #555; cursor: default; }
-input[type="range"] { accent-color: #3b82f6; }
-input[type="number"] { width: 90px; }
-canvas {
-  display: block;
-  width: 100%;
-  max-width: 700px;
-  height: auto;
-  margin: 12px auto;
-  border: 3px solid #64748b;
-  border-radius: 6px;
-}
-.settings {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  margin: 0 auto;
   align-items: center;
-  gap: 8px;
-}
-.settings label {
-  display: inline-flex;
-  flex-direction: column;
   gap: 4px;
-  align-items: center;
 }
 .help { color: #cbd5e1; font-size: 13px; }
 #message { min-height: 22px; color: #facc15; }
@@ -70,7 +28,12 @@ canvas {
   gap: 10px;
   text-align: left;
 }
-.item { background: #374151; border-radius: 8px; padding: 12px; }
+.item {
+  background: #374151;
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 0;
+}
 .preview {
   height: 36px;
   display: flex;
@@ -80,16 +43,13 @@ canvas {
 }
 .item button { width: 100%; }
 .danger { background: #b91c1c; }
-details summary { cursor: pointer; font-size: 18px; font-weight: bold; }
-</style>
-</head>
-<body>
-<div id="app">
-    <p class="help">Coins always award 1 point. Coin value cannot be changed.</p>
-  </div>
-
-  <p id="message">Collect coins and avoid the enemies.</p>
-  <p class="help">Move using WASD or the arrow keys.</p>
+details summary {
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: bold;
+}
+hr { border-color: #64748b; margin: 18px 0; }
+  <p class="help">Move with WASD or the arrow keys.</p>
 </div>
 
 <canvas id="game" width="700" height="420"></canvas>
@@ -104,15 +64,15 @@ details summary { cursor: pointer; font-size: 18px; font-weight: bold; }
       <label>Sound volume: <span id="volumeLabel">50%</span>
         <input id="volume" type="range" min="0" max="1" step=".05" value=".5">
       </label>
-      <label>
-        <span>Sound</span>
+      <label>Sound
         <select id="soundEnabled">
           <option value="on">On</option>
           <option value="off">Off</option>
         </select>
       </label>
     </div>
-    <p class="help">UI scale changes the size of the game interface. Sound uses simple built-in game effects.</p>
+
+    <p class="help">Change the interface size and sound volume. Sound effects play when collecting coins and losing.</p>
     <hr>
     <h3>Reset Progress</h3>
     <p class="help">Deletes your saved points, best score, purchases, and equipped items.</p>
@@ -125,75 +85,31 @@ details summary { cursor: pointer; font-size: 18px; font-weight: bold; }
   <p>Unlock shapes, enemy color themes, and backgrounds with points.</p>
   <div id="shop"></div>
 </div>
+
 </div>
 
 <script>
-const $ = id => document.getElementById(id);
-const canvas = $("game");
-const ctx = canvas.getContext("2d");
+"use strict";
+    const data = JSON.parse(localStorage.getItem("coinCollectorSave") || "{}");
+    const s = { ...defaultSave(), ...data };
 
-function defaultSave() {
-  return {
-    points:0, best:0,
-    ownedShapes:["square"],
-    ownedThemes:["classic"],
-    ownedBackgrounds:["night"],
-    shape:"square", theme:"classic", background:"night",
-    uiScale:1, volume:.5, soundEnabled:true
-  };
-}
-
-function loadSave() {
-  try {
-    const d = JSON.parse(localStorage.getItem("coinCollectorSave") || "{}");
-    const s = { ...defaultSave(), ...d };
     s.points = Math.max(0, Number(s.points) || 0);
     s.best = Math.max(0, Number(s.best) || 0);
-    for (const [key, fallback] of [
-      ["ownedShapes",["square"]],
-      ["ownedThemes",["classic"]],
-      ["ownedBackgrounds",["night"]]
-    ]) {
-      if (!Array.isArray(s[key])) s[key] = fallback;
-    }
-    if (!shapes.some(x => x.id === s.shape) || !s.ownedShapes.includes(s.shape)) s.shape = "square";
-    if (!themes.some(x => x.id === s.theme) || !s.ownedThemes.includes(s.theme)) s.theme = "classic";
-    if (!backgrounds.some(x => x.id === s.background) || !s.ownedBackgrounds.includes(s.background)) s.background = "night";
     s.uiScale = Math.min(1.25, Math.max(.75, Number(s.uiScale) || 1));
     s.volume = Math.min(1, Math.max(0, Number(s.volume) || 0));
-    return s;
-  } catch {
-    return defaultSave();
-  }
-}
 
-let save = loadSave();
-let score = 0;
-let running = false;
-let paused = false;
-let gameOver = false;
-let player = null;
-let coin = null;
-let enemies = [];
-let settings = modes.medium;
-let keys = {};
-let animationId = null;
-let audioContext = null;
-let lastSoundTime = 0;
+    if (!Array.isArray(s.ownedShapes)) s.ownedShapes = ["square"];
+    if (!Array.isArray(s.ownedThemes)) s.ownedThemes = ["classic"];
+    if (!Array.isArray(s.ownedBackgrounds)) s.ownedBackgrounds = ["night"];
 
-function saveData() {
-  try {
-    localStorage.setItem("coinCollectorSave", JSON.stringify(save));
-  } catch {}
-}
+    if (!shapes.some(x => x.id === s.shape) || !s.ownedShapes.includes(s.shape))
+      s.shape = "square";
+    if (!themes.some(x => x.id === s.theme) || !s.ownedThemes.includes(s.theme))
+      s.theme = "classic";
+    if (!backgrounds.some(x => x.id === s.background) || !s.ownedBackgrounds.includes(s.background))
+      s.background = "night";
 
-function updateStats() {
-  $("score").textContent = score;
-  $("points").textContent = save.points;
-  $("best").textContent = save.best;
-}
-
-function applySettings() {
+  // Scale the page content without scaling the canvas's drawing coordinates.
   $("app").style.zoom = save.uiScale;
   $("uiScale").value = save.uiScale;
   $("scaleLabel").textContent = Math.round(save.uiScale * 100) + "%";
@@ -220,20 +136,24 @@ $("soundEnabled").addEventListener("change", () => {
   if (save.soundEnabled) playSound(440, .08);
 });
 
-function playSound(frequency, duration, type = "sine") {
+function playSound(frequency, duration, type="sine") {
   if (!save.soundEnabled || save.volume <= 0) return;
+
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
+
     if (!audioContext) audioContext = new AudioCtx();
     if (audioContext.state === "suspended") audioContext.resume();
 
     const oscillator = audioContext.createOscillator();
     const gain = audioContext.createGain();
+
     oscillator.type = type;
     oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-    gain.gain.setValueAtTime(Math.max(.001, save.volume * .16), audioContext.currentTime);
+    gain.gain.setValueAtTime(save.volume * .16, audioContext.currentTime);
     gain.gain.exponentialRampToValueAtTime(.001, audioContext.currentTime + duration);
+
     oscillator.connect(gain);
     gain.connect(audioContext.destination);
     oscillator.start();
@@ -241,17 +161,20 @@ function playSound(frequency, duration, type = "sine") {
   } catch {}
 }
 
-function randomPosition(size = 18) {
+function randomPosition(size=18) {
   return {
-    x: size + Math.random() * (canvas.width - size * 2),
-    y: size + Math.random() * (canvas.height - size * 2)
+    x:size + Math.random() * (canvas.width - size*2),
+    y:size + Math.random() * (canvas.height - size*2)
   };
 }
 
 function placeCoin() {
   coin = randomPosition(10);
-  let tries = 0;
-  while (player && Math.hypot(coin.x-player.x, coin.y-player.y) < 60 && tries++ < 30) {
+  let attempts = 0;
+
+  while (player &&
+    Math.hypot(coin.x-player.x, coin.y-player.y) < 60 &&
+    attempts++ < 30) {
     coin = randomPosition(10);
   }
 }
@@ -259,127 +182,122 @@ function placeCoin() {
 function readCustomSettings() {
   const number = (id, min, max, fallback) =>
     Math.min(max, Math.max(min, Number($(id).value) || fallback));
+
   const start = number("enemyStart", .5, 12, 2);
+
   return {
-    count:Math.round(number("enemyCount",1,15,3)),
-    player:number("playerSpeed",1,8,3.5),
+    count:Math.round(number("enemyCount", 1, 15, 3)),
+    player:number("playerSpeed", 1, 8, 3.5),
     start,
-    max:Math.max(start,number("enemyMax",1,20,8)),
-    acc:number("acceleration",0,1,.035)
+    max:Math.max(start, number("enemyMax", 1, 20, 8)),
+    acc:number("acceleration", 0, 1, .035)
   };
 }
 
 function startGame() {
   if (animationId !== null) cancelAnimationFrame(animationId);
+
   score = 0;
   gameOver = false;
   paused = false;
   running = true;
-  settings = $("mode").value === "custom" ? readCustomSettings() : modes[$("mode").value];
 
-  player = { x:canvas.width/2, y:canvas.height/2, size:14 };
+  settings = $("mode").value === "custom"
+    ? readCustomSettings()
+    : modes[$("mode").value];
+
+  player = {
+    x:canvas.width/2,
+    y:canvas.height/2,
+    size:14
+  };
+
   enemies = [];
 
   for (let i=0; i<settings.count; i++) {
-    const p = randomPosition(25);
+    const p = randomPosition(30);
     const angle = Math.random() * Math.PI * 2;
     const speed = settings.start + Math.random() * .5;
+
     enemies.push({
-      x:p.x, y:p.y, size:13,
-      vx:Math.cos(angle)*speed,
-      vy:Math.sin(angle)*speed,
+      x:p.x,
+      y:p.y,
+      size:13,
+      vx:Math.cos(angle) * speed,
+      vy:Math.sin(angle) * speed,
       baseSpeed:speed
     });
   }
 
   placeCoin();
+  keys = {};
   $("message").textContent = "Collect coins and avoid the enemies.";
   $("pause").textContent = "Pause";
   updateStats();
-  animationId = requestAnimationFrame(loop);
-}
 
-function enemySpeed(enemy) {
-  return Math.min(settings.max, enemy.baseSpeed + score * settings.acc);
-}
-
-function enemyColor(enemy) {
-  const theme = themes.find(t => t.id === save.theme) || themes[0];
-  const range = settings.max - settings.start;
-  const progress = range <= 0 ? 1 :
-    Math.min(1, Math.max(0, (enemySpeed(enemy)-settings.start)/range));
-  const index = Math.round(progress * (theme.colors.length-1));
-  return theme.colors[index];
-}
-
-function drawPlayer() {
-  const s = player.size;
-  ctx.fillStyle = "#3b82f6";
-  ctx.strokeStyle = "white";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-
-  if (save.shape === "circle") {
-    ctx.arc(player.x,player.y,s,0,Math.PI*2);
-  } else if (save.shape === "triangle") {
-    ctx.moveTo(player.x,player.y-s);
-    ctx.lineTo(player.x+s,player.y+s);
-    ctx.lineTo(player.x-s,player.y+s);
-    ctx.closePath();
-  } else if (save.shape === "diamond") {
-    ctx.moveTo(player.x,player.y-s);
-    ctx.lineTo(player.x+s,player.y);
-    ctx.lineTo(player.x,player.y+s);
-    ctx.lineTo(player.x-s,player.y);
-    ctx.closePath();
-  } else if (save.shape === "star") {
-    for (let i=0;i<10;i++) {
-      const r = i%2===0 ? s : s*.45;
-      const a = -Math.PI/2+i*Math.PI/5;
-      const x = player.x+Math.cos(a)*r;
-      const y = player.y+Math.sin(a)*r;
-      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  draw();
+      const x = player.x + Math.cos(a)*r;
+      const y = player.y + Math.sin(a)*r;
+      if (i===0) ctx.moveTo(x,y);
+      else ctx.lineTo(x,y);
     }
     ctx.closePath();
   } else if (save.shape === "hexagon") {
-    for (let i=0;i<6;i++) {
+    for (let i=0; i<6; i++) {
       const a = i*Math.PI/3;
-      const x = player.x+Math.cos(a)*s;
-      const y = player.y+Math.sin(a)*s;
-      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      const x = player.x + Math.cos(a)*s;
+      const y = player.y + Math.sin(a)*s;
+      if (i===0) ctx.moveTo(x,y);
+      else ctx.lineTo(x,y);
     }
     ctx.closePath();
   } else {
-    ctx.rect(player.x-s,player.y-s,s*2,s*2);
+    ctx.rect(player.x-s, player.y-s, s*2, s*2);
   }
+
   ctx.fill();
   ctx.stroke();
 }
 
 function draw() {
-  const bg = backgrounds.find(b => b.id===save.background) || backgrounds[0];
+  const bg = backgrounds.find(b => b.id === save.background) || backgrounds[0];
+
   ctx.fillStyle = bg.color;
-  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
   ctx.strokeStyle = bg.grid;
   ctx.lineWidth = 1;
 
-  for (let x=0;x<canvas.width;x+=35) {
-    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
+  for (let x=0; x<canvas.width; x+=35) {
+    ctx.beginPath();
+    ctx.moveTo(x,0);
+    ctx.lineTo(x,canvas.height);
+    ctx.stroke();
   }
-  for (let y=0;y<canvas.height;y+=35) {
-    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+
+  for (let y=0; y<canvas.height; y+=35) {
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    ctx.lineTo(canvas.width,y);
+    ctx.stroke();
   }
 
   if (coin) {
     ctx.fillStyle = "#facc15";
-    ctx.beginPath(); ctx.arc(coin.x,coin.y,8,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle = "#fff0a3"; ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(coin.x,coin.y,8,0,Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = "#fff0a3";
+    ctx.stroke();
   }
 
-  enemies.forEach(e => {
-    ctx.fillStyle = enemyColor(e);
-    ctx.beginPath(); ctx.arc(e.x,e.y,e.size,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle = "#ffffff99"; ctx.stroke();
+  enemies.forEach(enemy => {
+    ctx.fillStyle = enemyColor(enemy);
+    ctx.beginPath();
+    ctx.arc(enemy.x,enemy.y,enemy.size,0,Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = "#ffffff99";
+    ctx.stroke();
   });
 
   if (player) drawPlayer();
@@ -390,49 +308,51 @@ function draw() {
     ctx.fillStyle = "white";
     ctx.textAlign = "center";
     ctx.font = "bold 32px Arial";
-    ctx.fillText(paused ? "PAUSED" : "GAME OVER",canvas.width/2,canvas.height/2);
+    ctx.fillText(paused ? "PAUSED" : "GAME OVER",
+      canvas.width/2,canvas.height/2);
     ctx.font = "16px Arial";
-    ctx.fillText("Press Start / Restart to play again",canvas.width/2,canvas.height/2+32);
+    ctx.fillText("Press Start / Restart to play again",
+      canvas.width/2,canvas.height/2+32);
   }
 }
 
-/* Enemies move independently and bounce off walls.
-   Their speed increases with score, but their direction
-   does not automatically turn toward the player. */
-function moveEnemy(e) {
-  const speed = enemySpeed(e);
-  const currentSpeed = Math.hypot(e.vx,e.vy) || 1;
-  e.vx = e.vx / currentSpeed * speed;
-  e.vy = e.vy / currentSpeed * speed;
+/* Enemies move independently and bounce off the arena walls.
+   They accelerate as the score increases but do not chase the player. */
+function moveEnemy(enemy) {
+  const speed = enemySpeed(enemy);
+  const oldSpeed = Math.hypot(enemy.vx, enemy.vy) || 1;
 
-  e.x += e.vx;
-  e.y += e.vy;
+  enemy.vx = enemy.vx / oldSpeed * speed;
+  enemy.vy = enemy.vy / oldSpeed * speed;
 
-  if (e.x - e.size <= 0) {
-    e.x = e.size;
-    e.vx = Math.abs(e.vx);
-  } else if (e.x + e.size >= canvas.width) {
-    e.x = canvas.width-e.size;
-    e.vx = -Math.abs(e.vx);
+  enemy.x += enemy.vx;
+  enemy.y += enemy.vy;
+
+  if (enemy.x-enemy.size <= 0) {
+    enemy.x = enemy.size;
+    enemy.vx = Math.abs(enemy.vx);
+  } else if (enemy.x+enemy.size >= canvas.width) {
+    enemy.x = canvas.width-enemy.size;
+    enemy.vx = -Math.abs(enemy.vx);
   }
 
-  if (e.y - e.size <= 0) {
-    e.y = e.size;
-    e.vy = Math.abs(e.vy);
-  } else if (e.y + e.size >= canvas.height) {
-    e.y = canvas.height-e.size;
-    e.vy = -Math.abs(e.vy);
+  if (enemy.y-enemy.size <= 0) {
+    enemy.y = enemy.size;
+    enemy.vy = Math.abs(enemy.vy);
+  } else if (enemy.y+enemy.size >= canvas.height) {
+    enemy.y = canvas.height-enemy.size;
+    enemy.vy = -Math.abs(enemy.vy);
   }
 }
 
 function endGame() {
   running = false;
   gameOver = true;
-  save.best = Math.max(save.best,score);
+  save.best = Math.max(save.best, score);
   saveData();
   updateStats();
   $("message").textContent = "Game over. Your score was " + score + ".";
-  playSound(150,.35,"sawtooth");
+  playSound(150, .35, "sawtooth");
   draw();
 }
 
@@ -445,21 +365,29 @@ function loop() {
     return;
   }
 
-  let dx=0, dy=0;
+  let dx = 0, dy = 0;
+
   if (keys.ArrowLeft || keys.a) dx--;
   if (keys.ArrowRight || keys.d) dx++;
   if (keys.ArrowUp || keys.w) dy--;
   if (keys.ArrowDown || keys.s) dy++;
 
-  if (dx && dy) { dx*=Math.SQRT1_2; dy*=Math.SQRT1_2; }
+  if (dx && dy) {
+    dx *= Math.SQRT1_2;
+    dy *= Math.SQRT1_2;
+  }
 
-  player.x = Math.max(player.size,Math.min(canvas.width-player.size,player.x+dx*settings.player));
-  player.y = Math.max(player.size,Math.min(canvas.height-player.size,player.y+dy*settings.player));
+  player.x = Math.max(player.size,
+    Math.min(canvas.width-player.size, player.x+dx*settings.player));
+
+  player.y = Math.max(player.size,
+    Math.min(canvas.height-player.size, player.y+dy*settings.player));
 
   if (Math.hypot(player.x-coin.x,player.y-coin.y) < player.size+8) {
     score++;
     save.points++;
     placeCoin();
+
     save.best = Math.max(save.best,score);
     saveData();
     updateStats();
@@ -467,14 +395,16 @@ function loop() {
 
     const now = performance.now();
     if (now-lastSoundTime > 65) {
-      playSound(600 + (score%5)*100,.09);
+      playSound(600+(score%5)*100, .09);
       lastSoundTime = now;
     }
   }
 
   for (const enemy of enemies) {
     moveEnemy(enemy);
-    if (Math.hypot(player.x-enemy.x,player.y-enemy.y) < player.size+enemy.size) {
+
+    if (Math.hypot(player.x-enemy.x,player.y-enemy.y)
+      < player.size+enemy.size) {
       endGame();
       return;
     }
@@ -484,26 +414,30 @@ function loop() {
   animationId = requestAnimationFrame(loop);
 }
 
-$("start").addEventListener("click",startGame);
+$("start").addEventListener("click", startGame);
 
-$("mode").addEventListener("change",() => {
+$("mode").addEventListener("change", () => {
   $("customSettings").hidden = $("mode").value !== "custom";
 });
 
-$("pause").addEventListener("click",() => {
+$("pause").addEventListener("click", () => {
   if (!running || gameOver) return;
+
   paused = !paused;
   $("pause").textContent = paused ? "Resume" : "Pause";
 });
 
-document.addEventListener("keydown",e => {
-  const key = e.key.length===1 ? e.key.toLowerCase() : e.key;
-  if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key)) e.preventDefault();
+document.addEventListener("keydown", event => {
+  const key = event.key.length===1 ? event.key.toLowerCase() : event.key;
+
+  if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(event.key))
+    event.preventDefault();
+
   keys[key] = true;
 });
 
-document.addEventListener("keyup",e => {
-  const key = e.key.length===1 ? e.key.toLowerCase() : e.key;
+document.addEventListener("keyup", event => {
+  const key = event.key.length===1 ? event.key.toLowerCase() : event.key;
   keys[key] = false;
 });
 
@@ -511,7 +445,7 @@ function renderShop() {
   const shop = $("shop");
   shop.replaceChildren();
 
-  function section(title,items,ownedKey,equippedKey,type) {
+  function section(title, items, ownedKey, equippedKey, type) {
     const heading = document.createElement("h3");
     heading.textContent = title;
     shop.appendChild(heading);
@@ -521,7 +455,8 @@ function renderShop() {
 
     items.forEach(item => {
       const owned = save[ownedKey].includes(item.id);
-      const equipped = save[equippedKey]===item.id;
+      const equipped = save[equippedKey] === item.id;
+
       const card = document.createElement("div");
       card.className = "item";
 
@@ -532,46 +467,58 @@ function renderShop() {
       const preview = document.createElement("div");
       preview.className = "preview";
 
-      if (type==="shape") {
+      if (type === "shape") {
         preview.textContent = item.symbol;
         preview.style.color = "#60a5fa";
-      } else if (type==="theme") {
+      } else if (type === "theme") {
         preview.style.gap = "3px";
+
         item.colors.forEach(color => {
           const dot = document.createElement("span");
-          dot.style.cssText = `display:inline-block;width:19px;height:19px;border-radius:50%;background:${color};border:1px solid white`;
+          dot.style.cssText =
+            "display:inline-block;width:19px;height:19px;border-radius:50%;background:"+
+            color+";border:1px solid white";
           preview.appendChild(dot);
         });
       } else {
         preview.style.background = item.color;
-        preview.style.border = `2px solid ${item.grid}`;
+        preview.style.border = "2px solid " + item.grid;
         preview.style.margin = "8px 0";
       }
+
       card.appendChild(preview);
 
       const description = document.createElement("p");
-      description.textContent = equipped ? "Equipped" : owned ? "Unlocked" : item.price+" points";
+      description.textContent = equipped
+        ? "Equipped"
+        : owned ? "Unlocked" : item.price + " points";
       card.appendChild(description);
 
       const button = document.createElement("button");
       button.textContent = equipped ? "Equipped" : owned ? "Equip" : "Buy";
       button.disabled = equipped;
 
-      button.addEventListener("click",() => {
+      button.addEventListener("click", () => {
         if (!owned) {
           if (save.points < item.price) {
-            $("message").textContent = "You need "+(item.price-save.points)+" more points.";
+            $("message").textContent =
+              "You need " + (item.price-save.points) + " more points.";
             return;
           }
+
           save.points -= item.price;
           save[ownedKey].push(item.id);
         }
+
         save[equippedKey] = item.id;
         saveData();
         updateStats();
         renderShop();
         draw();
-        $("message").textContent = item.name+(owned ? " equipped." : " unlocked and equipped.");
+
+        $("message").textContent = item.name +
+          (owned ? " equipped." : " unlocked and equipped.");
+
         playSound(700,.1);
       });
 
@@ -587,35 +534,31 @@ function renderShop() {
   section("Backgrounds",backgrounds,"ownedBackgrounds","background","background");
 }
 
-$("resetProgress").addEventListener("click",() => {
-  const confirmed = confirm(
-    "Reset ALL progress? This deletes points, best score, purchases, and equipped customizations. This cannot be undone."
-  );
-  if (!confirmed) return;
+$("resetProgress").addEventListener("click", () => {
+  if (!confirm(
+    "Reset ALL progress? Your points, best score, purchases, and customizations will be deleted. This cannot be undone."
+  )) return;
 
   save = defaultSave();
-  score = 0;
-  running = false;
-  paused = false;
-  gameOver = false;
-  player = null;
-  coin = null;
-  enemies = [];
-  if (animationId !== null) cancelAnimationFrame(animationId);
-  animationId = null;
-
   saveData();
+
   applySettings();
   updateStats();
   renderShop();
-  draw();
-  $("message").textContent = "Progress has been reset.";
+
+  $("mode").value = "medium";
+  $("customSettings").hidden = true;
+
+  startGame();
+  $("message").textContent = "Progress reset. A new game has started.";
 });
 
+/* INITIALIZE EVERYTHING AND START PLAYING AUTOMATICALLY */
 applySettings();
 updateStats();
 renderShop();
-draw();
+startGame();
+
 </script>
 </body>
 </html>
