@@ -1,0 +1,84 @@
+<p>Use WASD or arrow keys to move. Collect coins!</p>
+<h2>Score: <span id="score">0</span></h2>
+<canvas id="game" width="600" height="400"></canvas>
+<p id="message">Avoid the red enemies!</p>
+<button onclick="startGame()">Restart</button>
+<script>
+const c = document.getElementById("game");
+const ctx = c.getContext("2d");
+let p, coin, enemies, score, keys, running;
+
+function randomPos() {
+  return {x: 20 + Math.random()*560, y: 20 + Math.random()*360};
+}
+
+function startGame() {
+  p = {x:40,y:40};
+  coin = randomPos();
+  enemies = [
+    {x:300,y:150,dx:2.5,dy:2},
+    {x:450,y:300,dx:-2,dy:2.5}
+  ];
+  score = 0;
+  keys = {};
+  running = true;
+  document.getElementById("score").textContent = score;
+  document.getElementById("message").textContent = "Avoid the red enemies!";
+  draw();
+}
+
+document.addEventListener("keydown", e => {
+  keys[e.key.toLowerCase()] = true;
+});
+document.addEventListener("keyup", e => {
+  keys[e.key.toLowerCase()] = false;
+});
+
+function draw() {
+  if (!running) return;
+  ctx.clearRect(0,0,c.width,c.height);
+
+  if(keys["arrowup"]||keys["w"]) p.y-=4;
+  if(keys["arrowdown"]||keys["s"]) p.y+=4;
+  if(keys["arrowleft"]||keys["a"]) p.x-=4;
+  if(keys["arrowright"]||keys["d"]) p.x+=4;
+
+  p.x=Math.max(11,Math.min(c.width-11,p.x));
+  p.y=Math.max(11,Math.min(c.height-11,p.y));
+
+  ctx.fillStyle="#facc15";
+  ctx.beginPath();
+  ctx.arc(coin.x,coin.y,10,0,Math.PI*2);
+  ctx.fill();
+
+  if(Math.hypot(p.x-coin.x,p.y-coin.y)<23) {
+    score++;
+    document.getElementById("score").textContent=score;
+    coin=randomPos();
+  }
+
+  ctx.fillStyle="#3b82f6";
+  ctx.fillRect(p.x-11,p.y-11,22,22);
+
+  for(const e of enemies) {
+    e.x+=e.dx; e.y+=e.dy;
+    if(e.x<12||e.x>c.width-12)e.dx*=-1;
+    if(e.y<12||e.y>c.height-12)e.dy*=-1;
+
+    ctx.fillStyle="#ef4444";
+    ctx.beginPath();
+    ctx.arc(e.x,e.y,12,0,Math.PI*2);
+    ctx.fill();
+
+    if(Math.hypot(p.x-e.x,p.y-e.y)<24) {
+      running=false;
+      document.getElementById("message").textContent="Game over! Score: "+score;
+      return;
+    }
+  }
+  requestAnimationFrame(draw);
+}
+startGame();
+</script>
+</body>
+</html>
