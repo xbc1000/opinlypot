@@ -6,30 +6,49 @@
 <title>Coin Collector</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;padding:18px;background:#0b1120;color:white;font-family:Arial;text-align:center}
+body{margin:0;padding:18px;background:#0b1120;color:white;font-family:Arial,sans-serif;text-align:center}
+#app{max-width:1000px;margin:auto}
 h1{color:#60a5fa}
+.topbar{display:flex;align-items:center;justify-content:center;position:relative;min-height:55px}
+.topbar h1{margin:12px 55px}
+#gear{position:absolute;right:0;top:5px;font-size:23px;padding:8px 12px}
 .panel{max-width:760px;margin:16px auto;padding:15px;background:#172033;border:1px solid #374b69;border-radius:12px}
 .stats{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;font-size:17px}
 select,input,button{padding:9px;margin:5px;border-radius:7px;border:1px solid #526580;background:#263751;color:white}
 button{cursor:pointer}
 button:hover{background:#36547a}
+button:disabled{opacity:.6;cursor:default}
 canvas{display:block;width:100%;max-width:600px;height:auto;margin:15px auto;border:4px solid #60a5fa;border-radius:5px;touch-action:none}
 .settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;text-align:left}
 .setting{background:#0e1728;padding:10px;border-radius:8px}
 .setting label{display:block;font-size:13px;color:#cbd5e1}
 .setting input{width:100%;margin:7px 0 0}
-.setting output{color:#facc15}
 .shop{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;text-align:left}
-.item{background:#0e1728;border:1px solid #374b69;padding:12px;border-radius:9px}
+.item{background:#0e1728;border:1px solid #374b69;padding:12px;border-radius:9px;overflow-wrap:anywhere}
 .item button{width:100%}
 .swatch{display:inline-block;width:22px;height:22px;border:2px solid white;border-radius:50%;vertical-align:middle;margin-right:7px}
 .small{font-size:13px;color:#a9b8ce}
 #message{min-height:22px;color:#facc15}
-.hidden{display:none}
+.hidden{display:none!important}
+.modal-backdrop{position:fixed;inset:0;background:#000b;z-index:10;display:flex;align-items:center;justify-content:center;padding:14px}
+.modal{background:#172033;border:1px solid #64748b;border-radius:12px;padding:20px;width:100%;max-width:480px;max-height:90vh;overflow:auto;text-align:left}
+.modal h2{text-align:center}
+.modal .setting{margin:10px 0}
+.modal .setting input{width:100%}
+.modal-actions{display:flex;justify-content:flex-end;flex-wrap:wrap}
+.danger{background:#a92828}
+.danger:hover{background:#c93636}
+hr{border:0;border-top:1px solid #475569;margin:18px 0}
 </style>
 </head>
 <body>
-<h1>COIN COLLECTOR</h1>
+<div id="app">
+
+<div class="topbar">
+  <h1>COIN COLLECTOR</h1>
+  <button id="gear" aria-label="Open settings" title="Settings">⚙</button>
+</div>
+
 <p>Collect coins. Avoid enemies. Spend points on cosmetics.</p>
 
 <div class="panel">
@@ -48,6 +67,7 @@ canvas{display:block;width:100%;max-width:600px;height:auto;margin:15px auto;bor
    <option value="custom">Custom</option>
   </select>
   <button id="start">Start / Restart</button>
+  <button id="pause">Pause</button>
  </p>
 
  <div id="customSettings" class="settings hidden">
@@ -71,33 +91,81 @@ canvas{display:block;width:100%;max-width:600px;height:auto;margin:15px auto;bor
    <label>Acceleration per coin</label>
    <input id="acceleration" type="number" min="0" max="1" step=".005" value=".035">
   </div>
-  <div class="setting">
-   <label>Coin value</label>
-   <input id="coinValue" type="number" min="1" max="10" value="1">
-  </div>
  </div>
 
  <canvas id="game" width="600" height="400"></canvas>
  <p id="message">Collect the yellow coins!</p>
  <p class="small">Move with WASD or arrow keys. Enemy colors show their speed.</p>
- <p class="small">Blue = slow · Cyan = faster · Yellow = fast · Orange = very fast · Red = maximum</p>
+ <p class="small">Enemies bounce off the arena walls. Every coin gives 1 point.</p>
 </div>
 
 <div class="panel">
  <h2>Player Skins</h2>
  <div id="skinShop" class="shop"></div>
 </div>
+
+<div class="panel">
+ <h2>Player Shapes</h2>
+ <p class="small">Unlock a shape and use it with any player skin.</p>
+ <div id="shapeShop" class="shop"></div>
+</div>
+
+<div class="panel">
+ <h2>Enemy Color Themes</h2>
+ <p class="small">Each theme changes as enemies get faster.</p>
+ <div id="themeShop" class="shop"></div>
+</div>
+
 <div class="panel">
  <h2>Backgrounds</h2>
  <div id="backgroundShop" class="shop"></div>
 </div>
 
-<script>
-const canvas=document.getElementById("game");
-const ctx=canvas.getContext("2d");
-const $=id=>document.getElementById(id);
+</div>
 
-const skins=[
+<div id="settingsBackdrop" class="modal-backdrop hidden">
+ <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <h2 id="settingsTitle">⚙ Settings</h2>
+
+  <div class="setting">
+   <label for="uiScale">UI Scale: <output id="scaleLabel">100%</output></label>
+   <input id="uiScale" type="range" min="0.75" max="1.25" step="0.05" value="1">
+  </div>
+
+  <div class="setting">
+   <label for="volume">Sound Volume: <output id="volumeLabel">50%</output></label>
+   <input id="volume" type="range" min="0" max="1" step="0.05" value="0.5">
+  </div>
+
+  <div class="setting">
+   <label for="soundEnabled">Sound Effects</label>
+   <select id="soundEnabled" style="width:100%">
+    <option value="on">On</option>
+    <option value="off">Muted</option>
+   </select>
+  </div>
+
+  <p class="small">Sound effects play when you collect a coin or lose. Your browser may require a click before sound can play.</p>
+
+  <hr>
+  <h3>Reset Progress</h3>
+  <p class="small">This deletes saved points, purchases, and equipped cosmetics. This cannot be undone.</p>
+  <button id="resetProgress" class="danger">Reset All Progress</button>
+
+  <div class="modal-actions">
+   <button id="closeSettings">Close</button>
+  </div>
+ </div>
+</div>
+
+<script>
+"use strict";
+
+const $ = id => document.getElementById(id);
+const canvas = $("game");
+const ctx = canvas.getContext("2d");
+
+const skins = [
  {name:"Blue",color:"#3b82f6",price:0},
  {name:"Green",color:"#22c55e",price:10},
  {name:"Purple",color:"#a855f7",price:25},
@@ -108,7 +176,25 @@ const skins=[
  {name:"Cyan",color:"#22d3ee",price:200}
 ];
 
-const backgrounds=[
+const shapes = [
+ {name:"Square",price:0,id:"square"},
+ {name:"Circle",price:25,id:"circle"},
+ {name:"Triangle",price:40,id:"triangle"},
+ {name:"Diamond",price:60,id:"diamond"},
+ {name:"Star",price:100,id:"star"},
+ {name:"Hexagon",price:125,id:"hexagon"}
+];
+
+const themes = [
+ {name:"Classic Blue to Red",price:0,colors:["#3b82f6","#22d3ee","#facc15","#f97316","#ef4444"]},
+ {name:"Black to White",price:75,colors:["#050505","#333333","#777777","#bbbbbb","#ffffff"]},
+ {name:"Ocean",price:90,colors:["#1d4ed8","#0ea5e9","#38bdf8","#818cf8","#c4b5fd"]},
+ {name:"Green to Yellow",price:90,colors:["#14532d","#16a34a","#84cc16","#eab308","#fef08a"]},
+ {name:"Fire",price:110,colors:["#fef08a","#facc15","#fb923c","#ef4444","#991b1b"]},
+ {name:"Neon",price:150,colors:["#ff00ff","#00ffff","#39ff14","#ffff00","#ff3131"]}
+];
+
+const backgrounds = [
  {name:"Classic",color:"#111c30",price:0},
  {name:"Forest",color:"#123c2a",price:20},
  {name:"Ocean",color:"#102e4a",price:30},
@@ -117,75 +203,182 @@ const backgrounds=[
  {name:"Dark",color:"#080808",price:100}
 ];
 
-const modes={
- easy:{count:1,player:5,start:1,max:3,acc:.01,value:1},
- medium:{count:3,player:3.5,start:2,max:8,acc:.035,value:1},
- hard:{count:6,player:2.5,start:3,max:12,acc:.06,value:1}
+const modes = {
+ easy:{count:1,player:5,start:1,max:3,acc:.01},
+ medium:{count:3,player:3.5,start:2,max:8,acc:.035},
+ hard:{count:6,player:2.5,start:3,max:12,acc:.06}
 };
 
 function loadSave(){
- try{return JSON.parse(localStorage.getItem("coinCollectorSave"))||{}}
- catch{return {}}
+ try {
+  return JSON.parse(localStorage.getItem("coinCollectorSave")) || {};
+ } catch {
+  return {};
+ }
 }
-const saved=loadSave();
-let wallet=Number.isFinite(saved.wallet)?Math.max(0,saved.wallet):0;
-let ownedSkins=Array.isArray(saved.ownedSkins)?saved.ownedSkins.filter(n=>skins.some(s=>s.name===n)):["Blue"];
-let ownedBackgrounds=Array.isArray(saved.ownedBackgrounds)?saved.ownedBackgrounds.filter(n=>backgrounds.some(b=>b.name===n)):["Classic"];
-if(!ownedSkins.includes("Blue"))ownedSkins.push("Blue");
-if(!ownedBackgrounds.includes("Classic"))ownedBackgrounds.push("Classic");
-let selectedSkin=ownedSkins.includes(saved.selectedSkin)?saved.selectedSkin:"Blue";
-let selectedBackground=ownedBackgrounds.includes(saved.selectedBackground)?saved.selectedBackground:"Classic";
 
-let player,coin,enemies=[],score=0,running=false,version=0,keys={};
-let config=modes.medium;
+const saved = loadSave();
+
+let wallet = Number.isFinite(saved.wallet) ? Math.max(0,saved.wallet) : 0;
+
+let ownedSkins = Array.isArray(saved.ownedSkins)
+ ? saved.ownedSkins.filter(n=>skins.some(s=>s.name===n)) : ["Blue"];
+
+let ownedBackgrounds = Array.isArray(saved.ownedBackgrounds)
+ ? saved.ownedBackgrounds.filter(n=>backgrounds.some(b=>b.name===n)) : ["Classic"];
+
+let ownedShapes = Array.isArray(saved.ownedShapes)
+ ? saved.ownedShapes.filter(n=>shapes.some(s=>s.name===n)) : ["Square"];
+
+let ownedThemes = Array.isArray(saved.ownedThemes)
+ ? saved.ownedThemes.filter(n=>themes.some(t=>t.name===n)) : ["Classic Blue to Red"];
+
+if(!ownedSkins.includes("Blue")) ownedSkins.push("Blue");
+if(!ownedBackgrounds.includes("Classic")) ownedBackgrounds.push("Classic");
+if(!ownedShapes.includes("Square")) ownedShapes.push("Square");
+if(!ownedThemes.includes("Classic Blue to Red")) ownedThemes.push("Classic Blue to Red");
+
+let selectedSkin = ownedSkins.includes(saved.selectedSkin) ? saved.selectedSkin : "Blue";
+let selectedBackground = ownedBackgrounds.includes(saved.selectedBackground) ? saved.selectedBackground : "Classic";
+let selectedShape = ownedShapes.includes(saved.selectedShape) ? saved.selectedShape : "Square";
+let selectedTheme = ownedThemes.includes(saved.selectedTheme) ? saved.selectedTheme : "Classic Blue to Red";
+
+let uiScale = Number.isFinite(saved.uiScale) ? Math.min(1.25,Math.max(.75,saved.uiScale)) : 1;
+let volume = Number.isFinite(saved.volume) ? Math.min(1,Math.max(0,saved.volume)) : .5;
+let soundEnabled = saved.soundEnabled !== false;
+
+let player, coin, enemies = [], score = 0, running = false, paused = false, version = 0, keys = {};
+let config = {...modes.medium};
+let audioContext = null;
 
 function save(){
- localStorage.setItem("coinCollectorSave",JSON.stringify({
-  wallet,ownedSkins,ownedBackgrounds,selectedSkin,selectedBackground
- }));
- $("wallet").textContent=wallet;
+ try {
+  localStorage.setItem("coinCollectorSave",JSON.stringify({
+   wallet,ownedSkins,ownedBackgrounds,selectedSkin,selectedBackground,
+   ownedShapes,selectedShape,ownedThemes,selectedTheme,
+   uiScale,volume,soundEnabled
+  }));
+ } catch {}
+
+ $("wallet").textContent = wallet;
 }
 
 function currentSkin(){return skins.find(s=>s.name===selectedSkin)||skins[0]}
 function currentBg(){return backgrounds.find(b=>b.name===selectedBackground)||backgrounds[0]}
+function currentShape(){return shapes.find(s=>s.name===selectedShape)||shapes[0]}
+function currentTheme(){return themes.find(t=>t.name===selectedTheme)||themes[0]}
+
+function applySettings(){
+ $("app").style.zoom = uiScale;
+ $("uiScale").value = uiScale;
+ $("scaleLabel").textContent = Math.round(uiScale*100)+"%";
+ $("volume").value = volume;
+ $("volumeLabel").textContent = Math.round(volume*100)+"%";
+ $("soundEnabled").value = soundEnabled ? "on" : "off";
+}
+
+$("uiScale").addEventListener("input",()=>{
+ uiScale = Number($("uiScale").value);
+ applySettings();
+ save();
+});
+
+$("volume").addEventListener("input",()=>{
+ volume = Number($("volume").value);
+ applySettings();
+ save();
+});
+
+$("soundEnabled").addEventListener("change",()=>{
+ soundEnabled = $("soundEnabled").value === "on";
+ save();
+ if(soundEnabled) playSound(500,.07);
+});
+
+function playSound(frequency,duration,type="sine"){
+ if(!soundEnabled || volume<=0) return;
+
+ try {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if(!AudioCtx) return;
+
+  if(!audioContext) audioContext = new AudioCtx();
+  if(audioContext.state==="suspended") audioContext.resume();
+
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency,audioContext.currentTime);
+  gain.gain.setValueAtTime(volume*.15,audioContext.currentTime);
+  gain.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+duration);
+
+  oscillator.connect(gain);
+  gain.connect(audioContext.destination);
+  oscillator.start();
+  oscillator.stop(audioContext.currentTime+duration);
+ } catch {}
+}
 
 function randomPos(){
- return {x:25+Math.random()*(canvas.width-50),y:25+Math.random()*(canvas.height-50)};
+ return {
+  x:25+Math.random()*(canvas.width-50),
+  y:25+Math.random()*(canvas.height-50)
+ };
 }
+
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 
 function getConfig(){
- const difficulty=$("difficulty").value;
- if(difficulty!=="custom")return {...modes[difficulty]};
+ const difficulty = $("difficulty").value;
+ if(difficulty!=="custom") return {...modes[difficulty]};
+
+ const number = (id,min,max,fallback) =>
+  Math.min(max,Math.max(min,Number($(id).value)||fallback));
+
+ const start = number("enemyStart",.5,12,2);
+
  return {
-  count:Math.max(1,Math.min(15,Number($("enemyCount").value)||1)),
-  player:Math.max(1,Math.min(8,Number($("playerSpeed").value)||3.5)),
-  start:Math.max(.5,Math.min(12,Number($("enemyStart").value)||2)),
-  max:Math.max(1,Math.min(20,Number($("enemyMax").value)||8)),
-  acc:Math.max(0,Math.min(1,Number($("acceleration").value)||0)),
-  value:Math.max(1,Math.min(10,Math.floor(Number($("coinValue").value)||1)))
+  count:Math.round(number("enemyCount",1,15,3)),
+  player:number("playerSpeed",1,8,3.5),
+  start,
+  max:Math.max(start,number("enemyMax",1,20,8)),
+  acc:number("acceleration",0,1,.035)
  };
 }
 
 function startGame(){
  version++;
- const v=version;
- config=getConfig();
- config.max=Math.max(config.start,config.max);
- player={x:45,y:45,size:13};
- coin=randomPos();
- enemies=[];
- score=0;
- keys={};
- running=true;
- $("score").textContent=score;
- $("modeLabel").textContent=$("difficulty").selectedOptions[0].text;
- $("message").textContent="Collect coins and avoid the enemies!";
+ const v = version;
+
+ config = getConfig();
+ config.max = Math.max(config.start,config.max);
+
+ player = {x:45,y:45,size:13};
+ coin = randomPos();
+ enemies = [];
+ score = 0;
+ keys = {};
+ running = true;
+ paused = false;
+
+ $("score").textContent = score;
+ $("modeLabel").textContent = $("difficulty").selectedOptions[0].text;
+ $("message").textContent = "Collect the yellow coins!";
+ $("pause").textContent = "Pause";
+
  for(let i=0;i<config.count;i++){
-  let p=randomPos();
-  while(dist(p,player)<100)p=randomPos();
-  const angle=Math.random()*Math.PI*2;
-  const speed=config.start*(.8+Math.random()*.4);
+  let p = randomPos();
+  let attempts = 0;
+
+  while(dist(p,player)<100 && attempts<100){
+   p = randomPos();
+   attempts++;
+  }
+
+  const angle = Math.random()*Math.PI*2;
+  const speed = config.start*(.8+Math.random()*.4);
+
   enemies.push({
    x:p.x,y:p.y,
    dx:Math.cos(angle)*speed,
@@ -193,157 +386,316 @@ function startGame(){
    base:speed
   });
  }
+
  draw(v);
 }
 
 $("start").addEventListener("click",startGame);
+
 $("difficulty").addEventListener("change",()=>{
  $("customSettings").classList.toggle("hidden",$("difficulty").value!=="custom");
- if(running)startGame();
+ if(running) startGame();
+});
+
+$("pause").addEventListener("click",()=>{
+ if(!running) return;
+ paused = !paused;
+ $("pause").textContent = paused ? "Resume" : "Pause";
+ if(!paused) draw(version);
 });
 
 document.addEventListener("keydown",e=>{
- const k=e.key.toLowerCase();
- if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k))e.preventDefault();
- keys[k]=true;
+ const k = e.key.toLowerCase();
+ if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k)) e.preventDefault();
+ keys[k] = true;
 });
+
 document.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
 window.addEventListener("blur",()=>keys={});
 
+function interpolateColor(a,b,t){
+ const parse = hex => {
+  const h = hex.replace("#","");
+  return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];
+ };
+
+ const aa = parse(a), bb = parse(b);
+ const rgb = aa.map((v,i)=>Math.round(v+(bb[i]-v)*t));
+ return "rgb("+rgb.join(",")+")";
+}
+
 function speedColor(speed,max){
- const ratio=Math.max(0,Math.min(1,speed/max));
- const stops=[
-  [0,[59,130,246]],
-  [.25,[34,211,238]],
-  [.5,[250,204,21]],
-  [.75,[249,115,22]],
-  [1,[239,68,68]]
- ];
- let i=0;
- while(i<stops.length-2&&ratio>stops[i+1][0])i++;
- const a=stops[i],b=stops[i+1];
- const t=(ratio-a[0])/(b[0]-a[0]);
- const rgb=a[1].map((c,j)=>Math.round(c+(b[1][j]-c)*t));
- return `rgb(${rgb.join(",")})`;
+ const colors = currentTheme().colors;
+ const ratio = Math.max(0,Math.min(1,speed/Math.max(.1,max)));
+ const position = ratio*(colors.length-1);
+ const index = Math.min(colors.length-2,Math.floor(position));
+ const fraction = position-index;
+ return interpolateColor(colors[index],colors[index+1],fraction);
+}
+
+function drawPlayer(){
+ const s = player.size;
+ ctx.fillStyle = currentSkin().color;
+ ctx.strokeStyle = "white";
+ ctx.lineWidth = 2;
+ ctx.beginPath();
+
+ switch(currentShape().id){
+  case "circle":
+   ctx.arc(player.x,player.y,s,0,Math.PI*2);
+   break;
+
+  case "triangle":
+   ctx.moveTo(player.x,player.y-s);
+   ctx.lineTo(player.x+s,player.y+s);
+   ctx.lineTo(player.x-s,player.y+s);
+   ctx.closePath();
+   break;
+
+  case "diamond":
+   ctx.moveTo(player.x,player.y-s);
+   ctx.lineTo(player.x+s,player.y);
+   ctx.lineTo(player.x,player.y+s);
+   ctx.lineTo(player.x-s,player.y);
+   ctx.closePath();
+   break;
+
+  case "star":
+   for(let i=0;i<10;i++){
+    const r = i%2===0 ? s : s*.45;
+    const a = -Math.PI/2+i*Math.PI/5;
+    const x = player.x+Math.cos(a)*r;
+    const y = player.y+Math.sin(a)*r;
+    if(i===0) ctx.moveTo(x,y);
+    else ctx.lineTo(x,y);
+   }
+   ctx.closePath();
+   break;
+
+  case "hexagon":
+   for(let i=0;i<6;i++){
+    const a = i*Math.PI/3;
+    const x = player.x+Math.cos(a)*s;
+    const y = player.y+Math.sin(a)*s;
+    if(i===0) ctx.moveTo(x,y);
+    else ctx.lineTo(x,y);
+   }
+   ctx.closePath();
+   break;
+
+  default:
+   ctx.rect(player.x-s,player.y-s,s*2,s*2);
+ }
+
+ ctx.fill();
+ ctx.stroke();
 }
 
 function draw(v){
- if(!running||v!==version)return;
- ctx.clearRect(0,0,600,400);
- ctx.fillStyle=currentBg().color;
- ctx.fillRect(0,0,600,400);
+ if(!running || v!==version) return;
 
- // Arena grid and bright boundaries
- ctx.strokeStyle="#ffffff20";
- ctx.lineWidth=1;
- for(let x=0;x<=600;x+=25){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,400);ctx.stroke()}
- for(let y=0;y<=400;y+=25){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(600,y);ctx.stroke()}
- ctx.strokeStyle="#93c5fd";
- ctx.lineWidth=4;
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ ctx.fillStyle = currentBg().color;
+ ctx.fillRect(0,0,canvas.width,canvas.height);
+
+ ctx.strokeStyle = "#ffffff20";
+ ctx.lineWidth = 1;
+
+ for(let x=0;x<=canvas.width;x+=25){
+  ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke();
+ }
+ for(let y=0;y<=canvas.height;y+=25){
+  ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();
+ }
+
+ ctx.strokeStyle = "#93c5fd";
+ ctx.lineWidth = 4;
  ctx.strokeRect(2,2,596,396);
 
+ if(paused){
+  drawCoin();
+  drawEnemies();
+  drawPlayer();
+  ctx.fillStyle="#0009";
+  ctx.fillRect(0,0,600,400);
+  ctx.fillStyle="white";
+  ctx.textAlign="center";
+  ctx.font="bold 32px Arial";
+  ctx.fillText("PAUSED",300,200);
+  return;
+ }
+
  let mx=0,my=0;
- if(keys.arrowup||keys.w)my--;
- if(keys.arrowdown||keys.s)my++;
- if(keys.arrowleft||keys.a)mx--;
- if(keys.arrowright||keys.d)mx++;
+ if(keys.arrowup||keys.w) my--;
+ if(keys.arrowdown||keys.s) my++;
+ if(keys.arrowleft||keys.a) mx--;
+ if(keys.arrowright||keys.d) mx++;
+
  if(mx&&my){mx*=Math.SQRT1_2;my*=Math.SQRT1_2}
+
  player.x=Math.max(16,Math.min(584,player.x+mx*config.player));
  player.y=Math.max(16,Math.min(384,player.y+my*config.player));
 
- // Coin
+ if(dist(player,coin)<23){
+  score++;
+  wallet++; // Each coin always gives exactly one point.
+  $("score").textContent=score;
+  save();
+
+  coin = randomPos();
+  let attempts=0;
+  while(dist(coin,player)<60 && attempts<100){
+   coin=randomPos();
+   attempts++;
+  }
+
+  $("message").textContent="+1 point! Enemies are accelerating.";
+  playSound(750,.10);
+ }
+
+ moveEnemies();
+
+ if(enemies.some(e=>dist(player,e)<25)){
+  running=false;
+  $("message").textContent="Game over! Score: "+score+". Press Start / Restart to play again.";
+  playSound(160,.3,"sawtooth");
+  drawCoin();
+  drawEnemies();
+  drawPlayer();
+  return;
+ }
+
+ drawCoin();
+ drawEnemies();
+ drawPlayer();
+
+ requestAnimationFrame(()=>draw(v));
+}
+
+function drawCoin(){
  ctx.fillStyle="#facc15";
  ctx.shadowColor="#facc15";
  ctx.shadowBlur=14;
- ctx.beginPath();ctx.arc(coin.x,coin.y,10,0,Math.PI*2);ctx.fill();
+ ctx.beginPath();
+ ctx.arc(coin.x,coin.y,10,0,Math.PI*2);
+ ctx.fill();
  ctx.shadowBlur=0;
+}
 
- if(dist(player,coin)<23){
-  score++;
-  wallet+=config.value;
-  $("score").textContent=score;
-  save();
-  coin=randomPos();
-  $("message").textContent="+"+config.value+" points! Enemies are accelerating.";
- }
-
- // Player
- ctx.fillStyle=currentSkin().color;
- ctx.fillRect(player.x-12,player.y-12,24,24);
- ctx.strokeStyle="white";ctx.lineWidth=2;
- ctx.strokeRect(player.x-12,player.y-12,24,24);
-
- // Enemy speed increases with score; color tracks actual speed.
+function moveEnemies(){
  for(const e of enemies){
-  const oldSpeed=Math.hypot(e.dx,e.dy);
-  const target=Math.min(config.max,e.base+score*config.acc);
-  const newSpeed=Math.min(config.max,Math.max(.1,target));
+  const oldSpeed = Math.hypot(e.dx,e.dy);
+  const target = Math.min(config.max,e.base+score*config.acc);
+  const newSpeed = Math.min(config.max,Math.max(.1,target));
+
   if(oldSpeed>0){
    e.dx=e.dx/oldSpeed*newSpeed;
    e.dy=e.dy/oldSpeed*newSpeed;
   }
-  e.x+=e.dx;e.y+=e.dy;
 
-  if(e.x<14||e.x>586){e.dx*=-1;e.x=Math.max(14,Math.min(586,e.x))}
-  if(e.y<14||e.y>386){e.dy*=-1;e.y=Math.max(14,Math.min(386,e.y))}
+  e.x+=e.dx;
+  e.y+=e.dy;
 
-  const speed=Math.hypot(e.dx,e.dy);
-  const color=speedColor(speed,config.max);
+  if(e.x<14||e.x>586){
+   e.dx*=-1;
+   e.x=Math.max(14,Math.min(586,e.x));
+  }
+
+  if(e.y<14||e.y>386){
+   e.dy*=-1;
+   e.y=Math.max(14,Math.min(386,e.y));
+  }
+ }
+}
+
+function drawEnemies(){
+ for(const e of enemies){
+  const speed = Math.hypot(e.dx,e.dy);
+  const color = speedColor(speed,config.max);
+
   ctx.fillStyle=color;
   ctx.shadowColor=color;
   ctx.shadowBlur=12;
-  ctx.beginPath();ctx.arc(e.x,e.y,12,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();
+  ctx.arc(e.x,e.y,12,0,Math.PI*2);
+  ctx.fill();
   ctx.shadowBlur=0;
 
-  // Speed indicator ring
   ctx.strokeStyle="#ffffffaa";
   ctx.lineWidth=2;
-  ctx.beginPath();ctx.arc(e.x,e.y,15,0,Math.PI*2);ctx.stroke();
-
-  if(dist(player,e)<25){
-   running=false;
-   $("message").textContent="Game over! Score: "+score+". Press Start / Restart to play again.";
-   return;
-  }
+  ctx.beginPath();
+  ctx.arc(e.x,e.y,15,0,Math.PI*2);
+  ctx.stroke();
  }
- requestAnimationFrame(()=>draw(v));
 }
 
 function renderShop(items,owned,selected,containerId,type){
- const container=$(containerId);
- container.innerHTML="";
+ const container = $(containerId);
+ container.replaceChildren();
+
  for(const item of items){
-  const card=document.createElement("div");
-  card.className="item";
-  const heading=document.createElement("div");
-  const swatch=document.createElement("span");
-  swatch.className="swatch";
-  swatch.style.background=item.color;
+  const card = document.createElement("div");
+  card.className = "item";
+
+  const heading = document.createElement("div");
+  const swatch = document.createElement("span");
+  swatch.className = "swatch";
+
+  if(type==="skin"){
+   swatch.style.background=item.color;
+  } else if(type==="theme"){
+   swatch.style.background="linear-gradient(90deg,"+item.colors.join(",")+")";
+  } else if(type==="background"){
+   swatch.style.background=item.color;
+  } else {
+   swatch.style.background="#3b82f6";
+   swatch.textContent="";
+  }
+
   heading.append(swatch,document.createTextNode(item.name));
   card.appendChild(heading);
 
-  const price=document.createElement("p");
-  price.className="small";
-  price.textContent=item.price===0?"Free":item.price+" points";
+  if(type==="shape"){
+   const preview=document.createElement("p");
+   preview.style.textAlign="center";
+   preview.style.fontSize="25px";
+   preview.style.color="#60a5fa";
+   preview.textContent=({
+    Square:"■",Circle:"●",Triangle:"▲",Diamond:"◆",Star:"★",Hexagon:"⬢"
+   })[item.name]||"■";
+   card.appendChild(preview);
+  }
+
+  const price = document.createElement("p");
+  price.className = "small";
+  price.textContent = item.price===0 ? "Free" : item.price+" points";
   card.appendChild(price);
 
-  const button=document.createElement("button");
-  const isOwned=owned.includes(item.name);
-  const isSelected=selected===item.name;
-  button.textContent=isSelected?"Equipped":isOwned?"Equip":"Buy";
-  button.disabled=isSelected||(!isOwned&&wallet<item.price);
+  const isOwned = owned.includes(item.name);
+  const isSelected = selected===item.name;
 
-  button.onclick=()=>{
+  const button = document.createElement("button");
+  button.textContent = isSelected ? "Equipped" : isOwned ? "Equip" : "Buy";
+  button.disabled = isSelected || (!isOwned && wallet<item.price);
+
+  button.addEventListener("click",()=>{
    if(!owned.includes(item.name)){
-    if(wallet<item.price)return;
+    if(wallet<item.price) return;
     wallet-=item.price;
     owned.push(item.name);
    }
-   if(type==="skin")selectedSkin=item.name;
-   else selectedBackground=item.name;
+
+   if(type==="skin") selectedSkin=item.name;
+   else if(type==="background") selectedBackground=item.name;
+   else if(type==="shape") selectedShape=item.name;
+   else if(type==="theme") selectedTheme=item.name;
+
    save();
    renderAllShops();
-  };
+   draw(version);
+   playSound(600,.08);
+  });
+
   card.appendChild(button);
   container.appendChild(card);
  }
@@ -351,9 +703,56 @@ function renderShop(items,owned,selected,containerId,type){
 
 function renderAllShops(){
  renderShop(skins,ownedSkins,selectedSkin,"skinShop","skin");
+ renderShop(shapes,ownedShapes,selectedShape,"shapeShop","shape");
+ renderShop(themes,ownedThemes,selectedTheme,"themeShop","theme");
  renderShop(backgrounds,ownedBackgrounds,selectedBackground,"backgroundShop","background");
 }
 
+$("gear").addEventListener("click",()=>{
+ $("settingsBackdrop").classList.remove("hidden");
+});
+
+$("closeSettings").addEventListener("click",()=>{
+ $("settingsBackdrop").classList.add("hidden");
+});
+
+$("settingsBackdrop").addEventListener("click",e=>{
+ if(e.target===$("settingsBackdrop")){
+  $("settingsBackdrop").classList.add("hidden");
+ }
+});
+
+document.addEventListener("keydown",e=>{
+ if(e.key==="Escape") $("settingsBackdrop").classList.add("hidden");
+});
+
+$("resetProgress").addEventListener("click",()=>{
+ const confirmed = confirm(
+  "Reset all progress? This deletes your saved points, purchases, and equipped cosmetics. This cannot be undone."
+ );
+
+ if(!confirmed) return;
+
+ wallet=0;
+ ownedSkins=["Blue"];
+ ownedBackgrounds=["Classic"];
+ ownedShapes=["Square"];
+ ownedThemes=["Classic Blue to Red"];
+
+ selectedSkin="Blue";
+ selectedBackground="Classic";
+ selectedShape="Square";
+ selectedTheme="Classic Blue to Red";
+
+ save();
+ renderAllShops();
+ $("settingsBackdrop").classList.add("hidden");
+
+ $("message").textContent="Progress reset.";
+ startGame();
+});
+
+applySettings();
 save();
 renderAllShops();
 startGame();
