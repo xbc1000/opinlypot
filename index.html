@@ -1,84 +1,468 @@
-<p>Use WASD or arrow keys to move. Collect coins!</p>
-<h2>Score: <span id="score">0</span></h2>
-<canvas id="game" width="600" height="400"></canvas>
-<p id="message">Avoid the red enemies!</p>
-<button onclick="startGame()">Restart</button>
-<script>
-const c = document.getElementById("game");
-const ctx = c.getContext("2d");
-let p, coin, enemies, score, keys, running;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coin Collector</title>
 
-function randomPos() {
-  return {x: 20 + Math.random()*560, y: 20 + Math.random()*360};
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 20px;
+  background: #0b1120;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+h1 { color: #60a5fa; margin-bottom: 8px; }
+
+.panel {
+  max-width: 760px;
+  margin: 15px auto;
+  padding: 16px;
+  background: #172033;
+  border: 1px solid #374b69;
+  border-radius: 12px;
+}
+
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  font-size: 17px;
+}
+
+.stat { margin: 5px; }
+.gold { color: #facc15; }
+.green { color: #4ade80; }
+
+canvas {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  margin: 15px auto;
+  border: 5px solid #60a5fa;
+  border-radius: 5px;
+  box-shadow: 0 0 18px #3b82f655;
+  touch-action: none;
+}
+
+button, select {
+  padding: 10px 13px;
+  margin: 5px;
+  border: 1px solid #526580;
+  border-radius: 7px;
+  background: #263751;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+button:hover { background: #36547a; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  gap: 10px;
+  text-align: left;
+}
+
+.item {
+  background: #0e1728;
+  border: 1px solid #374b69;
+  padding: 12px;
+  border-radius: 9px;
+}
+
+.swatch {
+  width: 24px;
+  height: 24px;
+  display: inline-block;
+  border-radius: 50%;
+  vertical-align: middle;
+  border: 2px solid white;
+  margin-right: 6px;
+}
+
+.item button { width: 100%; margin: 8px 0 0; }
+#message { min-height: 24px; color: #facc15; }
+.small { color: #a9b8ce; font-size: 13px; }
+
+</style>
+</head>
+
+<body>
+
+<h1>COIN COLLECTOR</h1>
+<p>Collect coins. Avoid enemies. Buy new looks.</p>
+
+<div class="panel">
+  <div class="stats">
+    <div class="stat">Score: <b id="score">0</b></div>
+    <div class="stat gold">Points: <b id="wallet">0</b></div>
+    <div class="stat">Difficulty: <b id="difficultyLabel">Medium</b></div>
+  </div>
+
+  <p>
+    Difficulty:
+    <select id="difficulty">
+      <option value="easy">Easy</option>
+      <option value="medium" selected>Medium</option>
+      <option value="hard">Hard</option>
+    </select>
+    <button onclick="startGame()">Start / Restart</button>
+  </p>
+
+  <canvas id="game" width="600" height="400"></canvas>
+  <p id="message">Press Start to play.</p>
+  <p class="small">
+    Move with WASD or arrow keys. Collect yellow coins and avoid red enemies.
+    Each coin gives you 1 point.
+  </p>
+</div>
+
+<div class="panel">
+  <h2>Player Skins</h2>
+  <p class="small">Spend points to unlock colors. Equip any skin you own.</p>
+  <div class="shop-grid" id="skinShop"></div>
+</div>
+
+<div class="panel">
+  <h2>Backgrounds</h2>
+  <p class="small">Change the arena's background color.</p>
+  <div class="shop-grid" id="backgroundShop"></div>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const scoreEl = document.getElementById("score");
+const walletEl = document.getElementById("wallet");
+const messageEl = document.getElementById("message");
+const difficultySelect = document.getElementById("difficulty");
+
+const skins = [
+  { name: "Blue", color: "#3b82f6", price: 0 },
+  { name: "Green", color: "#22c55e", price: 10 },
+  { name: "Purple", color: "#a855f7", price: 25 },
+  { name: "Red", color: "#ef4444", price: 40 },
+  { name: "Pink", color: "#ec4899", price: 60 },
+  { name: "Gold", color: "#facc15", price: 100 },
+  { name: "White", color: "#f8fafc", price: 150 },
+  { name: "Cyan", color: "#22d3ee", price: 200 }
+];
+
+const backgrounds = [
+  { name: "Classic", color: "#111c30", price: 0 },
+  { name: "Forest", color: "#123c2a", price: 20 },
+  { name: "Ocean", color: "#102e4a", price: 30 },
+  { name: "Purple Night", color: "#30194b", price: 50 },
+  { name: "Red Planet", color: "#51251f", price: 75 },
+  { name: "Dark", color: "#080808", price: 100 }
+];
+
+const modes = {
+  easy:   { player: 4.5, enemy: 1.3, count: 1 },
+  medium: { player: 3.5, enemy: 2.0, count: 2 },
+  hard:   { player: 2.6, enemy: 2.8, count: 4 }
+};
+
+function loadData() {
+  try {
+    return JSON.parse(localStorage.getItem("coinCollectorSave")) || {};
+  } catch {
+    return {};
+  }
+}
+
+const saved = loadData();
+let wallet = Number.isFinite(saved.wallet) ? Math.max(0, saved.wallet) : 0;
+let ownedSkins = Array.isArray(saved.ownedSkins)
+  ? saved.ownedSkins.filter(n => skins.some(s => s.name === n))
+  : ["Blue"];
+let ownedBackgrounds = Array.isArray(saved.ownedBackgrounds)
+  ? saved.ownedBackgrounds.filter(n => backgrounds.some(b => b.name === n))
+  : ["Classic"];
+
+if (!ownedSkins.includes("Blue")) ownedSkins.push("Blue");
+if (!ownedBackgrounds.includes("Classic")) ownedBackgrounds.push("Classic");
+
+let selectedSkin = ownedSkins.includes(saved.selectedSkin)
+  ? saved.selectedSkin : "Blue";
+let selectedBackground = ownedBackgrounds.includes(saved.selectedBackground)
+  ? saved.selectedBackground : "Classic";
+
+let player, coin, enemies, score = 0;
+let running = false;
+let gameVersion = 0;
+let keys = {};
+
+function saveData() {
+  localStorage.setItem("coinCollectorSave", JSON.stringify({
+    wallet, ownedSkins, ownedBackgrounds,
+    selectedSkin, selectedBackground
+  }));
+  walletEl.textContent = wallet;
+}
+
+function getSkin() {
+  return skins.find(s => s.name === selectedSkin) || skins[0];
+}
+
+function getBackground() {
+  return backgrounds.find(b => b.name === selectedBackground)
+    || backgrounds[0];
+}
+
+function randomPosition() {
+  return {
+    x: 25 + Math.random() * (canvas.width - 50),
+    y: 25 + Math.random() * (canvas.height - 50)
+  };
+}
+
+function distance(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
 function startGame() {
-  p = {x:40,y:40};
-  coin = randomPos();
-  enemies = [
-    {x:300,y:150,dx:2.5,dy:2},
-    {x:450,y:300,dx:-2,dy:2.5}
-  ];
+  gameVersion++;
+  const version = gameVersion;
+  const mode = modes[difficultySelect.value];
+
+  player = { x: 45, y: 45, size: 13 };
+  coin = randomPosition();
+  enemies = [];
   score = 0;
   keys = {};
   running = true;
-  document.getElementById("score").textContent = score;
-  document.getElementById("message").textContent = "Avoid the red enemies!";
-  draw();
+
+  for (let i = 0; i < mode.count; i++) {
+    let e = randomPosition();
+
+    while (distance(e, player) < 100) e = randomPosition();
+
+    const angle = Math.random() * Math.PI * 2;
+    enemies.push({
+      x: e.x, y: e.y,
+      dx: Math.cos(angle) * mode.enemy,
+      dy: Math.sin(angle) * mode.enemy
+    });
+  }
+
+  scoreEl.textContent = score;
+  document.getElementById("difficultyLabel").textContent =
+    difficultySelect.options[difficultySelect.selectedIndex].text;
+
+  messageEl.textContent = "Collect coins and stay away from enemies!";
+  draw(version);
 }
 
 document.addEventListener("keydown", e => {
-  keys[e.key.toLowerCase()] = true;
+  const k = e.key.toLowerCase();
+  if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(k)) {
+    e.preventDefault();
+  }
+  keys[k] = true;
 });
+
 document.addEventListener("keyup", e => {
   keys[e.key.toLowerCase()] = false;
 });
 
-function draw() {
-  if (!running) return;
-  ctx.clearRect(0,0,c.width,c.height);
+window.addEventListener("blur", () => { keys = {}; });
 
-  if(keys["arrowup"]||keys["w"]) p.y-=4;
-  if(keys["arrowdown"]||keys["s"]) p.y+=4;
-  if(keys["arrowleft"]||keys["a"]) p.x-=4;
-  if(keys["arrowright"]||keys["d"]) p.x+=4;
+function draw(version) {
+  if (!running || version !== gameVersion) return;
 
-  p.x=Math.max(11,Math.min(c.width-11,p.x));
-  p.y=Math.max(11,Math.min(c.height-11,p.y));
+  const mode = modes[difficultySelect.value];
+  const speedMultiplier = Math.min(2.5, 1 + score * 0.035);
 
-  ctx.fillStyle="#facc15";
-  ctx.beginPath();
-  ctx.arc(coin.x,coin.y,10,0,Math.PI*2);
-  ctx.fill();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = getBackground().color;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  if(Math.hypot(p.x-coin.x,p.y-coin.y)<23) {
-    score++;
-    document.getElementById("score").textContent=score;
-    coin=randomPos();
+  // Clearly visible arena grid
+  ctx.strokeStyle = "#ffffff18";
+  ctx.lineWidth = 1;
+
+  for (let x = 0; x <= canvas.width; x += 25) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, canvas.height);
+    ctx.stroke();
   }
 
-  ctx.fillStyle="#3b82f6";
-  ctx.fillRect(p.x-11,p.y-11,22,22);
-
-  for(const e of enemies) {
-    e.x+=e.dx; e.y+=e.dy;
-    if(e.x<12||e.x>c.width-12)e.dx*=-1;
-    if(e.y<12||e.y>c.height-12)e.dy*=-1;
-
-    ctx.fillStyle="#ef4444";
+  for (let y = 0; y <= canvas.height; y += 25) {
     ctx.beginPath();
-    ctx.arc(e.x,e.y,12,0,Math.PI*2);
-    ctx.fill();
+    ctx.moveTo(0, y);
+    ctx.lineTo(canvas.width, y);
+    ctx.stroke();
+  }
 
-    if(Math.hypot(p.x-e.x,p.y-e.y)<24) {
-      running=false;
-      document.getElementById("message").textContent="Game over! Score: "+score;
+  // Inner border
+  ctx.strokeStyle = "#93c5fd";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+
+  // Player movement
+  let mx = 0, my = 0;
+  if (keys["arrowup"] || keys["w"]) my--;
+  if (keys["arrowdown"] || keys["s"]) my++;
+  if (keys["arrowleft"] || keys["a"]) mx--;
+  if (keys["arrowright"] || keys["d"]) mx++;
+
+  if (mx && my) {
+    mx *= Math.SQRT1_2;
+    my *= Math.SQRT1_2;
+  }
+
+  player.x += mx * mode.player;
+  player.y += my * mode.player;
+
+  player.x = Math.max(16, Math.min(canvas.width - 16, player.x));
+  player.y = Math.max(16, Math.min(canvas.height - 16, player.y));
+
+  // Coin
+  ctx.fillStyle = "#facc15";
+  ctx.shadowColor = "#facc15";
+  ctx.shadowBlur = 12;
+  ctx.beginPath();
+  ctx.arc(coin.x, coin.y, 10, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Collect coin
+  if (distance(player, coin) < 23) {
+    score++;
+    wallet++;
+    scoreEl.textContent = score;
+    saveData();
+    coin = randomPosition();
+    messageEl.textContent = "Coin collected! Enemies are getting faster.";
+  }
+
+  // Player
+  ctx.fillStyle = getSkin().color;
+  ctx.fillRect(player.x - 12, player.y - 12, 24, 24);
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(player.x - 12, player.y - 12, 24, 24);
+
+  // Enemies get faster as score rises
+  for (const enemy of enemies) {
+    enemy.x += enemy.dx * speedMultiplier;
+    enemy.y += enemy.dy * speedMultiplier;
+
+    if (enemy.x < 14 || enemy.x > canvas.width - 14) {
+      enemy.dx *= -1;
+      enemy.x = Math.max(14, Math.min(canvas.width - 14, enemy.x));
+    }
+
+    if (enemy.y < 14 || enemy.y > canvas.height - 14) {
+      enemy.dy *= -1;
+      enemy.y = Math.max(14, Math.min(canvas.height - 14, enemy.y));
+    }
+
+    ctx.fillStyle = "#ef4444";
+    ctx.shadowColor = "#ef4444";
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(enemy.x, enemy.y, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    if (distance(player, enemy) < 25) {
+      running = false;
+      messageEl.textContent =
+        "Game over! Score: " + score + ". Press Start / Restart to try again.";
       return;
     }
   }
-  requestAnimationFrame(draw);
+
+  requestAnimationFrame(() => draw(version));
 }
+
+function renderShop(items, owned, selected, containerId, type) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+
+  for (const item of items) {
+    const isOwned = owned.includes(item.name);
+    const isSelected = selected === item.name;
+
+    const card = document.createElement("div");
+    card.className = "item";
+
+    const heading = document.createElement("div");
+    const swatch = document.createElement("span");
+    swatch.className = "swatch";
+    swatch.style.backgroundColor = item.color;
+
+    heading.appendChild(swatch);
+    heading.appendChild(document.createTextNode(item.name));
+    card.appendChild(heading);
+
+    const price = document.createElement("p");
+    price.className = "small";
+    price.textContent = item.price === 0 ? "Free" : item.price + " points";
+    card.appendChild(price);
+
+    const button = document.createElement("button");
+
+    if (isSelected) {
+      button.textContent = "Equipped";
+      button.disabled = true;
+    } else if (isOwned) {
+      button.textContent = "Equip";
+    } else {
+      button.textContent = "Buy";
+      button.disabled = wallet < item.price;
+    }
+
+    button.addEventListener("click", () => {
+      if (!owned.includes(item.name)) {
+        if (wallet < item.price) return;
+        wallet -= item.price;
+        owned.push(item.name);
+      }
+
+      if (type === "skin") selectedSkin = item.name;
+      else selectedBackground = item.name;
+
+      saveData();
+      renderAllShops();
+    });
+
+    card.appendChild(button);
+    container.appendChild(card);
+  }
+}
+
+function renderAllShops() {
+  renderShop(skins, ownedSkins, selectedSkin, "skinShop", "skin");
+  renderShop(
+    backgrounds, ownedBackgrounds, selectedBackground,
+    "backgroundShop", "background"
+  );
+}
+
+difficultySelect.addEventListener("change", () => {
+  document.getElementById("difficultyLabel").textContent =
+    difficultySelect.options[difficultySelect.selectedIndex].text;
+  if (running) startGame();
+});
+
+saveData();
+renderAllShops();
 startGame();
 </script>
+
 </body>
 </html>
