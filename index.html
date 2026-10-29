@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,132 +7,338 @@
 <meta name="description" content="Coin Collector — collect coins, dodge enemies, and unlock cosmetics.">
 <title>Coin Collector</title>
 <style>
-:root {
-  color-scheme: dark;
-  --bg: #0b1120;
-  --panel: #172033;
-  --panel-deep: #0e1728;
-  --border: #374b69;
-  --text: #f8fafc;
-  --muted: #a9b8ce;
-  --accent: #60a5fa;
-  --accent-strong: #3b82f6;
-  --gold: #facc15;
-  --danger: #ef4444;
-  --radius: 14px;
-}
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  padding: clamp(10px, 3vw, 24px);
-  background: radial-gradient(ellipse at top, #14213a 0%, var(--bg) 58%);
-  color: var(--text);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  text-align: center;
-}
-button, input, select { font: inherit; }
-button, select, input[type="number"], input[type="range"] {
-  accent-color: var(--accent);
-}
-button, select, input[type="number"] {
-  padding: 10px 12px;
-  border: 1px solid #526580;
-  border-radius: 9px;
-  background: #263751;
-  color: var(--text);
-}
-button { cursor: pointer; transition: background .15s, transform .12s, border-color .15s; }
-button:hover:not(:disabled) { background: #36547a; border-color: var(--accent); }
-button:active:not(:disabled) { transform: translateY(1px); }
-button:focus-visible, select:focus-visible, input:focus-visible {
-  outline: 3px solid #93c5fd;
-  outline-offset: 2px;
-}
-button:disabled { opacity: .55; cursor: not-allowed; }
-#app { max-width: 1040px; margin: auto; }
-.topbar { display: flex; align-items: center; justify-content: center; position: relative; min-height: 62px; }
-h1 { margin: 12px 55px; color: var(--accent); font-size: clamp(1.55rem, 5vw, 2.3rem); letter-spacing: .04em; }
-#gear { position: absolute; right: 0; top: 7px; font-size: 1.25rem; padding: 8px 12px; }
-.tagline { margin: 0 auto 18px; color: var(--muted); }
-.panel {
-  max-width: 780px;
-  margin: 16px auto;
-  padding: clamp(13px, 3vw, 20px);
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 10px 30px #0002;
-}
-.panel h2 { margin: 4px 0 12px; font-size: 1.25rem; }
-.stats { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
-.stat {
-  min-width: 105px;
-  padding: 9px 13px;
-  background: var(--panel-deep);
-  border: 1px solid #293a55;
-  border-radius: 10px;
-  color: var(--muted);
-  font-size: .9rem;
-}
-.stat strong { display: block; margin-top: 2px; color: var(--text); font-size: 1.2rem; }
-.controls { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 4px; }
-.controls label { color: var(--muted); }
-#start { background: var(--accent-strong); border-color: var(--accent); font-weight: 650; }
-canvas {
-  display: block;
-  width: 100%;
-  max-width: 600px;
-  height: auto;
-  margin: 14px auto;
-  border: 3px solid var(--accent);
-  border-radius: 8px;
-  touch-action: none;
-  background: #111c30;
-}
-#message { min-height: 1.5em; margin: 10px 0; color: var(--gold); font-weight: 600; }
-.small { font-size: .82rem; color: var(--muted); }
-.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 12px; text-align: left; }
-.setting { background: var(--panel-deep); padding: 11px; border-radius: 9px; }
-.setting label { display: block; margin-bottom: 6px; color: #cbd5e1; font-size: .84rem; }
-.setting input:not([type="checkbox"]):not([type="range"]), .setting select { width: 100%; }
-.setting input[type="range"] { width: 100%; }
-.shop { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 10px; text-align: left; }
-.item { min-width: 0; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-deep); overflow-wrap: anywhere; }
-.item-title { display: flex; align-items: center; gap: 8px; font-weight: 650; }
-.item button { width: 100%; margin: 10px 0 0; }
-.swatch { display: inline-block; flex: 0 0 auto; width: 23px; height: 23px; border: 2px solid #ffffffbb; border-radius: 50%; }
-.item-preview { text-align: center; color: var(--accent); font-size: 1.8rem; margin: 4px 0; }
-.hidden { display: none !important; }
-.modal-backdrop { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: 14px; background: #000b; }
-.modal { width: 100%; max-width: 480px; max-height: 90vh; overflow: auto; padding: 20px; text-align: left; background: var(--panel); border: 1px solid #64748b; border-radius: var(--radius); box-shadow: 0 24px 80px #0008; }
-.modal h2 { text-align: center; margin-top: 0; }
-.modal .setting { margin: 10px 0; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
-.danger { background: #a92828; border-color: #ef4444; }
-.danger:hover:not(:disabled) { background: #c93636; }
-hr { border: 0; border-top: 1px solid #475569; margin: 18px 0; }
-.touch-controls { display: none; max-width: 230px; margin: 12px auto 4px; grid-template-columns: repeat(3, 1fr); gap: 7px; }
-.touch-controls button { min-height: 46px; font-size: 1.2rem; user-select: none; touch-action: none; }
-.touch-controls [data-dir="up"] { grid-column: 2; }
-.touch-controls [data-dir="left"] { grid-column: 1; grid-row: 2; }
-.touch-controls [data-dir="down"] { grid-column: 2; grid-row: 2; }
-.touch-controls [data-dir="right"] { grid-column: 3; grid-row: 2; }
-.footer { color: #8092ac; font-size: .8rem; padding: 12px 0 4px; }
-@media (pointer: coarse), (max-width: 650px) {
-  .touch-controls { display: grid; }
-}
-@media (max-width: 480px) {
-  body { padding: 8px; }
-  .topbar h1 { margin-left: 45px; margin-right: 45px; }
-  .panel { margin: 11px auto; }
-  .stat { min-width: 82px; padding: 8px; }
-  .controls > * { max-width: 100%; }
-}
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { transition: none !important; }
-}
+  :root {
+    color-scheme: dark;
+    --bg: #0b1120;
+    --panel: #172033;
+    --panel-deep: #0e1728;
+    --border: #374b69;
+    --text: #f8fafc;
+    --muted: #a9b8ce;
+    --accent: #60a5fa;
+    --accent-strong: #3b82f6;
+    --gold: #facc15;
+    --danger: #ef4444;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: clamp(10px, 3vw, 24px);
+    background: radial-gradient(ellipse at top, #14213a 0%, var(--bg) 58%);
+    color: var(--text);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    text-align: center;
+  }
+
+  button, input, select { font: inherit; }
+
+  button, select, input[type="number"], input[type="range"] {
+    accent-color: var(--accent);
+  }
+
+  button, select, input[type="number"] {
+    padding: 10px 12px;
+    border: 1px solid #526580;
+    border-radius: 9px;
+    background: #263751;
+    color: var(--text);
+  }
+
+  button {
+    cursor: pointer;
+    transition: background .15s, transform .12s, border-color .15s;
+  }
+
+  button:hover:not(:disabled) {
+    background: #36547a;
+    border-color: var(--accent);
+  }
+
+  button:active:not(:disabled) { transform: translateY(1px); }
+
+  button:focus-visible, select:focus-visible, input:focus-visible {
+    outline: 3px solid #93c5fd;
+    outline-offset: 2px;
+  }
+
+  button:disabled { opacity: .55; cursor: not-allowed; }
+
+  #app { max-width: 1040px; margin: auto; }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    min-height: 62px;
+  }
+
+  h1 {
+    margin: 12px 55px;
+    color: var(--accent);
+    font-size: clamp(1.55rem, 5vw, 2.3rem);
+    letter-spacing: .04em;
+  }
+
+  #gear {
+    position: absolute;
+    right: 0;
+    top: 7px;
+    font-size: 1.25rem;
+    padding: 8px 12px;
+  }
+
+  .tagline { margin: 0 auto 18px; color: var(--muted); }
+
+  .panel {
+    max-width: 780px;
+    margin: 16px auto;
+    padding: clamp(13px, 3vw, 20px);
+    background: color-mix(in srgb, var(--panel) 94%, transparent);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 10px 30px #0002;
+  }
+
+  .panel h2 { margin: 4px 0 12px; font-size: 1.25rem; }
+
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+
+  .stat {
+    min-width: 105px;
+    padding: 9px 13px;
+    background: var(--panel-deep);
+    border: 1px solid #293a55;
+    border-radius: 10px;
+    color: var(--muted);
+    font-size: .9rem;
+  }
+
+  .stat strong {
+    display: block;
+    margin-top: 2px;
+    color: var(--text);
+    font-size: 1.2rem;
+  }
+
+  .controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .controls label { color: var(--muted); }
+
+  #start {
+    background: var(--accent-strong);
+    border-color: var(--accent);
+    font-weight: 650;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    max-width: 600px;
+    height: auto;
+    margin: 14px auto;
+    border: 3px solid var(--accent);
+    border-radius: 8px;
+    touch-action: none;
+    background: #111c30;
+  }
+
+  #message {
+    min-height: 1.5em;
+    margin: 10px 0;
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  .small { font-size: .82rem; color: var(--muted); }
+
+  .settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+    gap: 12px;
+    text-align: left;
+  }
+
+  .setting {
+    background: var(--panel-deep);
+    padding: 11px;
+    border-radius: 9px;
+  }
+
+  .setting label {
+    display: block;
+    margin-bottom: 6px;
+    color: #cbd5e1;
+    font-size: .84rem;
+  }
+
+  .setting input:not([type="checkbox"]):not([type="range"]),
+  .setting select {
+    width: 100%;
+  }
+
+  .setting input[type="range"] { width: 100%; }
+
+  .shop {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+    gap: 10px;
+    text-align: left;
+  }
+
+  .item {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel-deep);
+    overflow-wrap: anywhere;
+  }
+
+  .item-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 650;
+  }
+
+  .item button { width: 100%; margin: 10px 0 0; }
+
+  .swatch {
+    display: inline-block;
+    flex: 0 0 auto;
+    width: 23px;
+    height: 23px;
+    border: 2px solid #ffffffbb;
+    border-radius: 50%;
+  }
+
+  .item-preview {
+    text-align: center;
+    color: var(--accent);
+    font-size: 1.8rem;
+    margin: 4px 0;
+  }
+
+  .hidden { display: none !important; }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    background: #000b;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow: auto;
+    padding: 20px;
+    text-align: left;
+    background: var(--panel);
+    border: 1px solid #64748b;
+    border-radius: var(--radius);
+    box-shadow: 0 24px 80px #0008;
+  }
+
+  .modal h2 { text-align: center; margin-top: 0; }
+  .modal .setting { margin: 10px 0; }
+
+  .settings-section-title {
+    margin: 18px 0 8px;
+    color: var(--accent);
+    font-size: 1rem;
+  }
+
+  .modal .setting small {
+    display: block;
+    color: var(--muted);
+    font-size: .78rem;
+    line-height: 1.4;
+    margin-top: 5px;
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  .danger { background: #a92828; border-color: #ef4444; }
+  .danger:hover:not(:disabled) { background: #c93636; }
+
+  hr {
+    border: 0;
+    border-top: 1px solid #475569;
+    margin: 18px 0;
+  }
+
+  .touch-controls {
+    display: none;
+    max-width: 230px;
+    margin: 12px auto 4px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7px;
+  }
+
+  .touch-controls button {
+    min-height: 46px;
+    font-size: 1.2rem;
+    user-select: none;
+    touch-action: none;
+  }
+
+  .touch-controls [data-dir="up"] { grid-column: 2; }
+  .touch-controls [data-dir="left"] { grid-column: 1; grid-row: 2; }
+  .touch-controls [data-dir="down"] { grid-column: 2; grid-row: 2; }
+  .touch-controls [data-dir="right"] { grid-column: 3; grid-row: 2; }
+
+  .footer {
+    color: #8092ac;
+    font-size: .8rem;
+    padding: 12px 0 4px;
+  }
+
+  @media (pointer: coarse), (max-width: 650px) {
+    .touch-controls { display: grid; }
+  }
+
+  @media (max-width: 480px) {
+    body { padding: 8px; }
+    .topbar h1 { margin-left: 45px; margin-right: 45px; }
+    .panel { margin: 11px auto; }
+    .stat { min-width: 82px; padding: 8px; }
+    .controls > * { max-width: 100%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; }
+  }
 </style>
 </head>
+
 <body>
 <div id="app">
   <header class="topbar">
@@ -165,11 +370,26 @@ hr { border: 0; border-top: 1px solid #475569; margin: 18px 0; }
       </div>
 
       <div id="customSettings" class="settings-grid hidden">
-        <div class="setting"><label for="enemyCount">Number of enemies</label><input id="enemyCount" type="number" min="1" max="15" step="1" value="3"></div>
-        <div class="setting"><label for="playerSpeed">Player speed</label><input id="playerSpeed" type="number" min="1" max="8" step=".5" value="3.5"></div>
-        <div class="setting"><label for="enemyStart">Enemy starting speed</label><input id="enemyStart" type="number" min=".5" max="12" step=".5" value="2"></div>
-        <div class="setting"><label for="enemyMax">Enemy maximum speed</label><input id="enemyMax" type="number" min="1" max="20" step=".5" value="8"></div>
-        <div class="setting"><label for="acceleration">Acceleration per coin</label><input id="acceleration" type="number" min="0" max="1" step=".005" value=".035"></div>
+        <div class="setting">
+          <label for="enemyCount">Number of enemies</label>
+          <input id="enemyCount" type="number" min="1" max="15" step="1" value="3">
+        </div>
+        <div class="setting">
+          <label for="playerSpeed">Player speed</label>
+          <input id="playerSpeed" type="number" min="1" max="8" step=".5" value="3.5">
+        </div>
+        <div class="setting">
+          <label for="enemyStart">Enemy starting speed</label>
+          <input id="enemyStart" type="number" min=".5" max="12" step=".5" value="2">
+        </div>
+        <div class="setting">
+          <label for="enemyMax">Enemy maximum speed</label>
+          <input id="enemyMax" type="number" min="1" max="20" step=".5" value="8">
+        </div>
+        <div class="setting">
+          <label for="acceleration">Acceleration per coin</label>
+          <input id="acceleration" type="number" min="0" max="1" step=".005" value=".035">
+        </div>
       </div>
 
       <canvas id="game" width="600" height="400" aria-label="Game arena. Move with WASD or arrow keys to collect coins and avoid enemies.">
@@ -178,7 +398,7 @@ hr { border: 0; border-top: 1px solid #475569; margin: 18px 0; }
 
       <p id="message" role="status">Collect the yellow coins!</p>
       <p class="small">Move with WASD or arrow keys. On mobile, use the directional buttons below.</p>
-      <p class="small">Enemies bounce off arena walls. Each coin gives 1 point. Enemy colors show their speed.</p>
+      <p class="small">Enemies bounce off arena walls and can bounce off each other. Each coin gives 1 point. Enemy colors show their speed.</p>
 
       <div class="touch-controls" aria-label="Touch movement controls">
         <button type="button" data-dir="up" aria-label="Move up">▲</button>
@@ -229,6 +449,60 @@ hr { border: 0; border-top: 1px solid #475569; margin: 18px 0; }
       <input id="volume" type="range" min="0" max="1" step=".05" value=".5">
     </div>
 
+    <h3 class="settings-section-title">Gameplay</h3>
+
+    <div class="setting">
+      <label for="ballCollisions">Ball-to-ball collisions</label>
+      <select id="ballCollisions" style="width:100%">
+        <option value="on">On — balls bounce off each other</option>
+        <option value="off">Off — balls pass through each other</option>
+      </select>
+      <small>Controls whether enemy balls collide with one another.</small>
+    </div>
+
+    <div class="setting">
+      <label for="speedScaling">Enemy speed scaling</label>
+      <select id="speedScaling" style="width:100%">
+        <option value="on">On — enemies get faster as you score</option>
+        <option value="off">Off — enemies keep their starting speed</option>
+      </select>
+    </div>
+
+    <div class="setting">
+      <label for="invincible">Player invincibility</label>
+      <select id="invincible" style="width:100%">
+        <option value="off">Off — enemies can end the run</option>
+        <option value="on">On — enemies cannot end the run</option>
+      </select>
+      <small>Optional relaxed mode. You can still collect coins normally.</small>
+    </div>
+
+    <h3 class="settings-section-title">Visuals &amp; Audio</h3>
+
+    <div class="setting">
+      <label for="showGrid">Arena grid</label>
+      <select id="showGrid" style="width:100%">
+        <option value="on">On</option>
+        <option value="off">Off</option>
+      </select>
+    </div>
+
+    <div class="setting">
+      <label for="glowEffects">Glow effects</label>
+      <select id="glowEffects" style="width:100%">
+        <option value="on">On</option>
+        <option value="off">Off — cleaner, simpler visuals</option>
+      </select>
+    </div>
+
+    <div class="setting">
+      <label for="enemyOutlines">Enemy outlines</label>
+      <select id="enemyOutlines" style="width:100%">
+        <option value="on">On</option>
+        <option value="off">Off</option>
+      </select>
+    </div>
+
     <div class="setting">
       <label for="soundEnabled">Sound effects</label>
       <select id="soundEnabled" style="width:100%">
@@ -237,7 +511,8 @@ hr { border: 0; border-top: 1px solid #475569; margin: 18px 0; }
       </select>
     </div>
 
-    <p class="small">Your browser may require an interaction before sound can play.</p>
+    <p class="small">Settings are saved automatically in this browser. Your browser may require an interaction before sound can play.</p>
+
     <hr>
 
     <h3>Reset progress</h3>
@@ -256,6 +531,7 @@ hr { border: 0; border-top: 1px solid #475569; margin: 18px 0; }
 const $ = (id) => document.getElementById(id);
 const canvas = $("game");
 const ctx = canvas.getContext("2d");
+
 const SAVE_KEY = "coinCollectorSave";
 
 const skins = [
@@ -316,6 +592,12 @@ const defaults = {
   uiScale:1,
   volume:.5,
   soundEnabled:true,
+  ballCollisions:true,
+  speedScaling:true,
+  invincible:false,
+  showGrid:true,
+  glowEffects:true,
+  enemyOutlines:true,
   schemaVersion:1
 };
 
@@ -344,6 +626,7 @@ function loadSave() {
 
     save.wallet = Number.isFinite(save.wallet)
       ? Math.max(0, Math.floor(save.wallet)) : 0;
+
     save.bestScore = Number.isFinite(save.bestScore)
       ? Math.max(0, Math.floor(save.bestScore)) : 0;
 
@@ -360,6 +643,12 @@ function loadSave() {
     save.uiScale = Number.isFinite(save.uiScale) ? clamp(save.uiScale, .85, 1.15) : 1;
     save.volume = Number.isFinite(save.volume) ? clamp(save.volume, 0, 1) : .5;
     save.soundEnabled = save.soundEnabled !== false;
+    save.ballCollisions = save.ballCollisions !== false;
+    save.speedScaling = save.speedScaling !== false;
+    save.invincible = save.invincible === true;
+    save.showGrid = save.showGrid !== false;
+    save.glowEffects = save.glowEffects !== false;
+    save.enemyOutlines = save.enemyOutlines !== false;
     save.schemaVersion = 1;
 
     return save;
@@ -383,6 +672,12 @@ let selectedTheme = saved.selectedTheme;
 let uiScale = saved.uiScale;
 let volume = saved.volume;
 let soundEnabled = saved.soundEnabled;
+let ballCollisions = saved.ballCollisions;
+let speedScaling = saved.speedScaling;
+let invincible = saved.invincible;
+let showGrid = saved.showGrid;
+let glowEffects = saved.glowEffects;
+let enemyOutlines = saved.enemyOutlines;
 
 let player = {x:45,y:45,size:13};
 let coin = {x:300,y:200};
@@ -412,13 +707,19 @@ function save() {
     selectedTheme,
     uiScale,
     volume,
-    soundEnabled
+    soundEnabled,
+    ballCollisions,
+    speedScaling,
+    invincible,
+    showGrid,
+    glowEffects,
+    enemyOutlines
   };
 
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   } catch {
-    // Storage may be disabled or full.
+    /* Storage may be disabled or full. */
   }
 
   $("wallet").textContent = wallet;
@@ -428,23 +729,37 @@ function save() {
 function currentSkin() {
   return skins.find(s => s.name === selectedSkin) || skins[0];
 }
+
 function currentBg() {
   return backgrounds.find(b => b.name === selectedBackground) || backgrounds[0];
 }
+
 function currentShape() {
   return shapes.find(s => s.name === selectedShape) || shapes[0];
 }
+
 function currentTheme() {
   return themes.find(t => t.name === selectedTheme) || themes[0];
 }
 
 function applySettings() {
+  document.documentElement.style.setProperty("--ui-scale", uiScale);
+
   $("scaleLabel").textContent = `${Math.round(uiScale*100)}%`;
   $("volumeLabel").textContent = `${Math.round(volume*100)}%`;
+
   $("uiScale").value = uiScale;
   $("volume").value = volume;
   $("soundEnabled").value = soundEnabled ? "on" : "off";
+  $("ballCollisions").value = ballCollisions ? "on" : "off";
+  $("speedScaling").value = speedScaling ? "on" : "off";
+  $("invincible").value = invincible ? "on" : "off";
+  $("showGrid").value = showGrid ? "on" : "off";
+  $("glowEffects").value = glowEffects ? "on" : "off";
+  $("enemyOutlines").value = enemyOutlines ? "on" : "off";
+
   $("app").style.fontSize = `${uiScale}rem`;
+  render();
 }
 
 $("uiScale").addEventListener("input", () => {
@@ -465,6 +780,43 @@ $("soundEnabled").addEventListener("change", () => {
   if (soundEnabled) playSound(500,.07);
 });
 
+$("ballCollisions").addEventListener("change", () => {
+  ballCollisions = $("ballCollisions").value === "on";
+  save();
+});
+
+$("speedScaling").addEventListener("change", () => {
+  speedScaling = $("speedScaling").value === "on";
+  save();
+});
+
+$("invincible").addEventListener("change", () => {
+  invincible = $("invincible").value === "on";
+  save();
+
+  $("message").textContent = invincible
+    ? "Relaxed mode enabled: enemy hits won't end your run."
+    : "Player invincibility disabled.";
+});
+
+$("showGrid").addEventListener("change", () => {
+  showGrid = $("showGrid").value === "on";
+  save();
+  render();
+});
+
+$("glowEffects").addEventListener("change", () => {
+  glowEffects = $("glowEffects").value === "on";
+  save();
+  render();
+});
+
+$("enemyOutlines").addEventListener("change", () => {
+  enemyOutlines = $("enemyOutlines").value === "on";
+  save();
+  render();
+});
+
 function playSound(frequency, duration, type="sine") {
   if (!soundEnabled || volume <= 0) return;
 
@@ -480,15 +832,20 @@ function playSound(frequency, duration, type="sine") {
 
     oscillator.type = type;
     oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+
     gain.gain.setValueAtTime(volume * .15, audioContext.currentTime);
-    gain.gain.exponentialRampToValueAtTime(.001, audioContext.currentTime + duration);
+    gain.gain.exponentialRampToValueAtTime(
+      .001,
+      audioContext.currentTime + duration
+    );
 
     oscillator.connect(gain);
     gain.connect(audioContext.destination);
+
     oscillator.start();
     oscillator.stop(audioContext.currentTime + duration);
   } catch {
-    // Audio is optional.
+    /* Audio is optional. */
   }
 }
 
@@ -500,11 +857,12 @@ function randomPos(margin=25) {
 }
 
 function dist(a,b) {
-  return Math.hypot(a.x-b.x,a.y-b.y);
+  return Math.hypot(a.x-b.x, a.y-b.y);
 }
 
 function getConfig() {
   const difficulty = $("difficulty").value;
+
   if (difficulty !== "custom") {
     return {...(modes[difficulty] || modes.medium)};
   }
@@ -518,13 +876,13 @@ function getConfig() {
     );
   };
 
-  const start = number("enemyStart",.5,12,2);
+  const start = number("enemyStart", .5, 12, 2);
 
   return {
     count:Math.round(number("enemyCount",1,15,3)),
     player:number("playerSpeed",1,8,3.5),
     start,
-    max:Math.max(start,number("enemyMax",1,20,8)),
+    max:Math.max(start, number("enemyMax",1,20,8)),
     acc:number("acceleration",0,1,.035)
   };
 }
@@ -533,7 +891,7 @@ function startGame() {
   stopLoop();
 
   config = getConfig();
-  config.max = Math.max(config.start,config.max);
+  config.max = Math.max(config.start, config.max);
 
   player = {x:45,y:45,size:13};
   coin = randomPos();
@@ -586,6 +944,7 @@ function startLoop() {
 
 function gameLoop(timestamp) {
   animationId = null;
+
   if (!running || paused) return;
 
   const dt = lastFrameTime
@@ -601,8 +960,7 @@ function gameLoop(timestamp) {
 }
 
 function update(dt) {
-  let mx = 0;
-  let my = 0;
+  let mx = 0, my = 0;
 
   if (keys.arrowup || keys.w || keys.touchup) my--;
   if (keys.arrowdown || keys.s || keys.touchdown) my++;
@@ -614,11 +972,20 @@ function update(dt) {
     my *= Math.SQRT1_2;
   }
 
-  // Speeds are measured in pixels per 60 Hz frame.
+  // Speeds are expressed in the original game's pixels per 60 Hz frame.
   const frameScale = dt * 60;
 
-  player.x = clamp(player.x + mx * config.player * frameScale, 16, canvas.width - 16);
-  player.y = clamp(player.y + my * config.player * frameScale, 16, canvas.height - 16);
+  player.x = clamp(
+    player.x + mx * config.player * frameScale,
+    16,
+    canvas.width - 16
+  );
+
+  player.y = clamp(
+    player.y + my * config.player * frameScale,
+    16,
+    canvas.height - 16
+  );
 
   if (dist(player,coin) < 23) {
     score++;
@@ -628,6 +995,7 @@ function update(dt) {
 
     $("score").textContent = score;
     $("message").textContent = `+1 point! Score: ${score}. Keep moving!`;
+
     playSound(750,.10);
 
     coin = randomPos();
@@ -647,11 +1015,16 @@ function update(dt) {
 
   moveEnemies(frameScale);
 
-  if (enemies.some(e => dist(player,e) < 25)) {
+  // This setting controls collisions between enemy balls themselves.
+  if (ballCollisions) resolveBallCollisions();
+
+  if (!invincible && enemies.some(e => dist(player,e) < 25)) {
     running = false;
     stopLoop();
+
     $("message").textContent =
       `Game over! Score: ${score}. Press Start / Restart to play again.`;
+
     $("pause").textContent = "Pause";
     playSound(160,.3,"sawtooth");
   }
@@ -660,8 +1033,12 @@ function update(dt) {
 function moveEnemies(frameScale) {
   for (const e of enemies) {
     const oldSpeed = Math.hypot(e.dx,e.dy);
-    const target = Math.min(config.max,e.base + score * config.acc);
-    const newSpeed = Math.max(.1,target);
+
+    const target = speedScaling
+      ? Math.min(config.max, e.base + score * config.acc)
+      : e.base;
+
+    const newSpeed = Math.max(.1, target);
 
     if (oldSpeed > 0) {
       e.dx = e.dx / oldSpeed * newSpeed;
@@ -683,6 +1060,56 @@ function moveEnemies(frameScale) {
   }
 }
 
+function resolveBallCollisions() {
+  // Enemy balls have equal mass and bounce elastically when they touch.
+  const diameter = 24;
+
+  for (let i = 0; i < enemies.length; i++) {
+    for (let j = i + 1; j < enemies.length; j++) {
+      const a = enemies[i], b = enemies[j];
+
+      let dx = b.x - a.x;
+      let dy = b.y - a.y;
+      let distance = Math.hypot(dx, dy);
+
+      if (distance >= diameter) continue;
+
+      // Give perfectly overlapping balls a stable separation direction.
+      if (distance < 0.001) {
+        dx = 1;
+        dy = 0;
+        distance = 1;
+      }
+
+      const nx = dx / distance;
+      const ny = dy / distance;
+      const overlap = (diameter - distance) / 2;
+
+      a.x -= nx * overlap;
+      a.y -= ny * overlap;
+      b.x += nx * overlap;
+      b.y += ny * overlap;
+
+      // Only exchange velocity along the collision normal if they're moving together.
+      const relativeNormalSpeed =
+        (b.dx - a.dx) * nx + (b.dy - a.dy) * ny;
+
+      if (relativeNormalSpeed < 0) {
+        a.dx += relativeNormalSpeed * nx;
+        a.dy += relativeNormalSpeed * ny;
+        b.dx -= relativeNormalSpeed * nx;
+        b.dy -= relativeNormalSpeed * ny;
+      }
+
+      // Keep the balls inside the arena after separating them.
+      a.x = clamp(a.x, 14, canvas.width - 14);
+      a.y = clamp(a.y, 14, canvas.height - 14);
+      b.x = clamp(b.x, 14, canvas.width - 14);
+      b.y = clamp(b.y, 14, canvas.height - 14);
+    }
+  }
+}
+
 function interpolateColor(a,b,t) {
   const parse = hex => {
     const h = hex.replace("#","");
@@ -693,8 +1120,7 @@ function interpolateColor(a,b,t) {
     ];
   };
 
-  const aa = parse(a);
-  const bb = parse(b);
+  const aa = parse(a), bb = parse(b);
 
   return `rgb(${aa.map((v,i)=>Math.round(v+(bb[i]-v)*t)).join(",")})`;
 }
@@ -705,7 +1131,11 @@ function speedColor(speed,max) {
   const position = ratio * (colors.length-1);
   const index = Math.min(colors.length-2,Math.floor(position));
 
-  return interpolateColor(colors[index],colors[index+1],position-index);
+  return interpolateColor(
+    colors[index],
+    colors[index+1],
+    position-index
+  );
 }
 
 function drawPlayer() {
@@ -737,7 +1167,7 @@ function drawPlayer() {
       break;
 
     case "star":
-      for (let i=0; i<10; i++) {
+      for (let i=0;i<10;i++) {
         const r = i%2===0 ? s : s*.45;
         const a = -Math.PI/2 + i*Math.PI/5;
         const x = player.x + Math.cos(a)*r;
@@ -750,10 +1180,10 @@ function drawPlayer() {
       break;
 
     case "hexagon":
-      for (let i=0; i<6; i++) {
+      for (let i=0;i<6;i++) {
         const a = i*Math.PI/3;
-        const x = player.x + Math.cos(a)*s;
-        const y = player.y + Math.sin(a)*s;
+        const x = player.x+Math.cos(a)*s;
+        const y = player.y+Math.sin(a)*s;
 
         if (i===0) ctx.moveTo(x,y);
         else ctx.lineTo(x,y);
@@ -772,8 +1202,11 @@ function drawPlayer() {
 function drawCoin() {
   ctx.save();
   ctx.fillStyle = "#facc15";
-  ctx.shadowColor = "#facc15";
-  ctx.shadowBlur = 14;
+
+  if (glowEffects) {
+    ctx.shadowColor = "#facc15";
+    ctx.shadowBlur = 14;
+  }
 
   ctx.beginPath();
   ctx.arc(coin.x,coin.y,10,0,Math.PI*2);
@@ -797,20 +1230,25 @@ function drawEnemies() {
 
     ctx.save();
     ctx.fillStyle = color;
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 12;
+
+    if (glowEffects) {
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 12;
+    }
 
     ctx.beginPath();
     ctx.arc(e.x,e.y,12,0,Math.PI*2);
     ctx.fill();
 
     ctx.shadowBlur = 0;
-    ctx.strokeStyle = "#ffffffaa";
-    ctx.lineWidth = 2;
 
-    ctx.beginPath();
-    ctx.arc(e.x,e.y,15,0,Math.PI*2);
-    ctx.stroke();
+    if (enemyOutlines) {
+      ctx.strokeStyle = "#ffffffaa";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(e.x,e.y,15,0,Math.PI*2);
+      ctx.stroke();
+    }
 
     ctx.restore();
   }
@@ -818,24 +1256,27 @@ function drawEnemies() {
 
 function render() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
+
   ctx.fillStyle = currentBg().color;
   ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  ctx.strokeStyle = "#ffffff20";
-  ctx.lineWidth = 1;
+  if (showGrid) {
+    ctx.strokeStyle = "#ffffff20";
+    ctx.lineWidth = 1;
 
-  for (let x=0; x<=canvas.width; x+=25) {
-    ctx.beginPath();
-    ctx.moveTo(x,0);
-    ctx.lineTo(x,canvas.height);
-    ctx.stroke();
-  }
+    for (let x=0;x<=canvas.width;x+=25) {
+      ctx.beginPath();
+      ctx.moveTo(x,0);
+      ctx.lineTo(x,canvas.height);
+      ctx.stroke();
+    }
 
-  for (let y=0; y<=canvas.height; y+=25) {
-    ctx.beginPath();
-    ctx.moveTo(0,y);
-    ctx.lineTo(canvas.width,y);
-    ctx.stroke();
+    for (let y=0;y<=canvas.height;y+=25) {
+      ctx.beginPath();
+      ctx.moveTo(0,y);
+      ctx.lineTo(canvas.width,y);
+      ctx.stroke();
+    }
   }
 
   ctx.strokeStyle = "#93c5fd";
@@ -849,32 +1290,40 @@ function render() {
   if (paused) {
     ctx.fillStyle = "#0009";
     ctx.fillRect(0,0,canvas.width,canvas.height);
+
     ctx.fillStyle = "#fff";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.font = "bold 32px system-ui";
     ctx.fillText("PAUSED",canvas.width/2,canvas.height/2);
+
   } else if (!running) {
     ctx.fillStyle = "#0007";
     ctx.fillRect(0,0,canvas.width,canvas.height);
+
     ctx.fillStyle = "#fff";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.font = "bold 25px system-ui";
     ctx.fillText("GAME OVER",canvas.width/2,canvas.height/2-10);
+
     ctx.font = "16px system-ui";
     ctx.fillText(`Score: ${score}`,canvas.width/2,canvas.height/2+22);
   }
 }
 
-$("start").addEventListener("click",startGame);
+$("start").addEventListener("click", startGame);
 
-$("difficulty").addEventListener("change",() => {
-  $("customSettings").classList.toggle("hidden",$("difficulty").value !== "custom");
+$("difficulty").addEventListener("change", () => {
+  $("customSettings").classList.toggle(
+    "hidden",
+    $("difficulty").value !== "custom"
+  );
+
   if (running) startGame();
 });
 
-$("pause").addEventListener("click",() => {
+$("pause").addEventListener("click", () => {
   if (!running) return;
 
   paused = !paused;
@@ -890,7 +1339,7 @@ $("pause").addEventListener("click",() => {
   }
 });
 
-document.addEventListener("keydown",e => {
+document.addEventListener("keydown", e => {
   const key = e.key.toLowerCase();
 
   if (["arrowup","arrowdown","arrowleft","arrowright"," "].includes(key)) {
@@ -902,11 +1351,11 @@ document.addEventListener("keydown",e => {
   if (key === " " && !e.repeat && !running) startGame();
 });
 
-document.addEventListener("keyup",e => {
+document.addEventListener("keyup", e => {
   keys[e.key.toLowerCase()] = false;
 });
 
-window.addEventListener("blur",() => {
+window.addEventListener("blur", () => {
   keys = Object.create(null);
 });
 
@@ -919,7 +1368,7 @@ document.querySelectorAll(".touch-controls button").forEach(button => {
     keys[key] = false;
   };
 
-  button.addEventListener("pointerdown",e => {
+  button.addEventListener("pointerdown", e => {
     e.preventDefault();
     keys[key] = true;
 
@@ -928,9 +1377,9 @@ document.querySelectorAll(".touch-controls button").forEach(button => {
     } catch {}
   });
 
-  button.addEventListener("pointerup",release);
-  button.addEventListener("pointercancel",release);
-  button.addEventListener("lostpointercapture",release);
+  button.addEventListener("pointerup", release);
+  button.addEventListener("pointercancel", release);
+  button.addEventListener("lostpointercapture", release);
 });
 
 function renderShop(items,owned,selected,containerId,type) {
@@ -983,12 +1432,16 @@ function renderShop(items,owned,selected,containerId,type) {
 
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = isSelected ? "Equipped" : isOwned ? "Equip" : "Buy";
+    button.textContent = isSelected
+      ? "Equipped"
+      : isOwned ? "Equip" : "Buy";
+
     button.disabled = isSelected || (!isOwned && wallet < item.price);
 
-    button.addEventListener("click",() => {
+    button.addEventListener("click", () => {
       if (!owned.includes(item.name)) {
         if (wallet < item.price) return;
+
         wallet -= item.price;
         owned.push(item.name);
       }
@@ -1033,14 +1486,14 @@ function closeSettings() {
   }
 }
 
-$("gear").addEventListener("click",openSettings);
-$("closeSettings").addEventListener("click",closeSettings);
+$("gear").addEventListener("click", openSettings);
+$("closeSettings").addEventListener("click", closeSettings);
 
-backdrop.addEventListener("click",e => {
+backdrop.addEventListener("click", e => {
   if (e.target === backdrop) closeSettings();
 });
 
-document.addEventListener("keydown",e => {
+document.addEventListener("keydown", e => {
   if (e.key === "Escape" && !backdrop.classList.contains("hidden")) {
     closeSettings();
   }
@@ -1071,7 +1524,7 @@ document.addEventListener("keydown",e => {
   }
 });
 
-$("resetProgress").addEventListener("click",() => {
+$("resetProgress").addEventListener("click", () => {
   const confirmed = confirm(
     "Reset all progress? This deletes saved points, high score, purchases, and equipped cosmetics. This cannot be undone."
   );
